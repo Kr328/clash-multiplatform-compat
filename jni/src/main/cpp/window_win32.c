@@ -4,7 +4,6 @@
 #include <dwmapi.h>
 #include <winuser.h>
 #include <windowsx.h>
-#include <dwmapi.h>
 
 #define KEY_AWT_WINDOW_PROCEDURE "awt-window-procedure"
 #define KEY_WINDOW_CONTEXT "compat-window-context"
@@ -27,14 +26,8 @@ static BOOL isPointInRect(int x, int y, RECT *rect) {
 }
 
 static LRESULT hitNonClient(WindowContext *context, int x, int y) {
-    if (isPointInRect(x, y, &context->windowControlPositions[MINIMIZE_BUTTON])) {
-        return HTMINBUTTON;
-    }
-    if (isPointInRect(x, y, &context->windowControlPositions[MAXIMIZE_BUTTON])) {
-        return HTMAXBUTTON;
-    }
     if (isPointInRect(x, y, &context->windowControlPositions[CLOSE_BUTTON])) {
-        return HTCLOSE;
+        return HTCLIENT;
     }
 
     int width = context->windowRectNow.right - context->windowRectNow.left;
@@ -122,45 +115,6 @@ static LRESULT delegateWindowProcedure(
 
             break;
         }
-        case WM_NCLBUTTONDOWN: {
-            switch (wParam) {
-                case HTCLOSE:
-                case HTMAXBUTTON:
-                case HTMINBUTTON: {
-                    return 0;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        case WM_NCLBUTTONUP: {
-            switch (wParam) {
-                case HTCLOSE: {
-                    SendMessageA(handle, WM_CLOSE, 0, 0);
-
-                    return 0;
-                }
-                case HTMAXBUTTON: {
-                    if (IsZoomed(handle)) {
-                        ShowWindow(handle, SW_RESTORE);
-                    } else {
-                        ShowWindow(handle, SW_MAXIMIZE);
-                    }
-
-                    return 0;
-                }
-                case HTMINBUTTON: {
-                    ShowWindow(handle, SW_MINIMIZE);
-
-                    return 0;
-                }
-                default: {
-                    break;
-                }
-            }
-            break;
-        }
         case WM_DESTROY: {
             SetPropA(handle, KEY_WINDOW_CONTEXT, NULL);
             SetWindowLongPtrA(handle, GWLP_WNDPROC, (LONG_PTR) awtProc);
@@ -190,6 +144,37 @@ static LRESULT delegateWindowProcedure(
 
             break;
         }
+        case WM_NCRBUTTONDOWN: {
+            if (wParam == HTCAPTION) {
+                return 0;
+            }
+
+            break;
+        }
+        case WM_NCRBUTTONUP: {
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
+
+            if (wParam == HTCAPTION) {
+                HMENU menu = GetSystemMenu(context->root, FALSE);
+
+                TrackPopupMenu(menu, 0, x, y, 0, context->root, NULL);
+
+                return 0;
+            }
+
+            break;
+        }
+        case WM_COMMAND: {
+            if (wParam & 0xF000) {
+                return SendMessageA(handle, WM_SYSCOMMAND, wParam, lParam);
+            }
+
+            break;
+        }
+        case WM_SYSCOMMAND: {
+            return DefWindowProcA(context->root, message, wParam, lParam);
+        }
         default: {
             break;
         }
@@ -214,15 +199,12 @@ static BOOL attachToWindow(HWND handle, LPARAM lparam) {
 
     EnumChildWindows(handle, &attachToWindow, (LPARAM) context);
 
-    const MARGINS margins = {0, 0, 0, 1};
-    DwmExtendFrameIntoClientArea(handle, &margins);
-
     SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 
     return TRUE;
 }
 
-void windowInit() {
+void windowInit(JNIEnv *env) {
     HANDLE user32 = GetModuleHandleA("libuser.dll");
 
     GetDpiForWindow = (UINT (*)(HWND)) GetProcAddress(user32, "GetDpiForWindow");
@@ -237,13 +219,18 @@ void windowSetWindowBorderless(void *handle) {
 
     SetRectEmpty(&context->windowRectNow);
 
-    for (int i = 0 ; i < WINDOW_CONTROL_END; i++) {
+    for (int i = 0; i < WINDOW_CONTROL_END; i++) {
         RECT *rect = &context->windowControlPositions[i];
         rect->left = -1;
         rect->top = -1;
         rect->right = -1;
         rect->bottom = -1;
     }
+
+    const MARGINS margins = {0, 0, 0, 1};
+    DwmExtendFrameIntoClientArea(handle, &margins);
+
+    SetWindowLongA(handle, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 
     attachToWindow(handle, (LPARAM) context);
 }
