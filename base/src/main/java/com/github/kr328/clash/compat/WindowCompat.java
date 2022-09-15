@@ -29,8 +29,6 @@ public final class WindowCompat {
     }
 
     public enum WindowControl {
-        MINIMIZE_BUTTON,
-        MAXIMIZE_BUTTON,
         CLOSE_BUTTON,
     }
 }

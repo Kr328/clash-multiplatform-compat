@@ -1,0 +1,3 @@
+[submodule "jni/src/main/cpp/external/Containers"]
+	path = jni/src/main/cpp/external/Containers
+	url = https://github.com/bkthomps/Containers.git

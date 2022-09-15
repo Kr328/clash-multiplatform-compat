@@ -2,6 +2,13 @@ subprojects {
     group = "com.github.kr328.clash.compat"
     version = "1.0.0"
 
+    plugins.withId("java") {
+        configure<JavaPluginExtension> {
+            sourceCompatibility = JavaVersion.VERSION_1_8
+            targetCompatibility = JavaVersion.VERSION_1_8
+        }
+    }
+
     plugins.withId("maven-publish") {
         extensions.configure<PublishingExtension> {
             publications {

@@ -14,8 +14,8 @@ static void jniSetWindowControlPosition(JNIEnv *env, jclass clazz, jlong handle,
     windowSetWindowControlPosition((void *) handle, control, left, top, right, bottom);
 }
 
-int windowOnLoaded(JNIEnv *env) {
-    windowInit();
+int loadWindow(JNIEnv *env) {
+    windowInit(env);
 
     jclass clazz = (*env)->FindClass(env, "com/github/kr328/clash/compat/WindowCompat");
 

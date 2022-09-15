@@ -13,7 +13,7 @@ jint JNI_OnLoad(JavaVM *vm, __attribute__((unused)) void *reserved) {
         return INT_MAX;
     }
 
-    if (windowOnLoaded(env)) {
+    if (loadWindow(env)) {
         return INT_MAX;
     }
 

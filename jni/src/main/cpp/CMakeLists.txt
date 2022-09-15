@@ -36,23 +36,34 @@ endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 
+add_subdirectory(external)
+
 include_directories("${JDK_PATH}/include")
 
 set(SRCS main.c window.h window.c theme.h theme.c)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     include_directories("${JDK_PATH}/include/win32")
+
     add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
+
     link_libraries(dwmapi)
+
     set(PLATFORM_SRCS window_win32.c theme_win32.c)
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     include_directories("${JDK_PATH}/include/linux")
-    set(PLATFORM_SRCS window_linux.c)
+
+    add_definitions("-D_GNU_SOURCE")
+
+    link_libraries(X11 containers)
+
+    set(PLATFORM_SRCS window_linux.c theme_linux.c)
 else()
     message(FATAL_ERROR "Unsupported OS ${CMAKE_SYSTEM_NAME}")
 endif()
 
 link_directories("${JDK_PATH}/lib")
+link_directories("${JDK_PATH}/lib/server")
 
 link_libraries(jvm)
 
