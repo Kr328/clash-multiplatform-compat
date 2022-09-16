@@ -30,9 +30,11 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
         "-G", "Ninja",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DJAVA_HOME=${System.getProperty("java.home")}",
-        "-DIS_64=${is64}",
         file("src/main/cpp")
     )
+    if (!is64) {
+        environment("CFLAGS", "-m32")
+    }
 }
 
 val compile = task("compileJniLibs", type = Exec::class) {

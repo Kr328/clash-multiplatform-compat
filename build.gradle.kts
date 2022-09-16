@@ -1,6 +1,11 @@
+val latestTag = Runtime.getRuntime()
+    .exec("git describe --tags --abbrev=0")
+    .inputStream.readBytes().toString(Charsets.UTF_8).trim()
+    .takeIf { it.isNotEmpty() } ?: "unknown"
+
 subprojects {
     group = "com.github.kr328.clash.compat"
-    version = "1.0.0"
+    version = latestTag
 
     plugins.withId("java") {
         configure<JavaPluginExtension> {
@@ -45,4 +50,10 @@ subprojects {
             }
         }
     }
+}
+
+task("clean", type = Delete::class) {
+    group = "build"
+
+    delete(buildDir)
 }
