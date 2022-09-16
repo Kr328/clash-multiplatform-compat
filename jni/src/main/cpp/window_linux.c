@@ -54,9 +54,9 @@ static int isInTitleBar(WindowContext *context, ulong x, ulong y) {
     return 0;
 }
 
-static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong displayPtr, jlong eventPtr) {
-    Display *display = (Display *) displayPtr;
-    XEvent *event = (XEvent *) eventPtr;
+static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong _display, jlong _event) {
+    Display *display = (Display *) _display;
+    XEvent *event = (XEvent *) _event;
 
     while (1) {
         XNextEvent(display, event);
