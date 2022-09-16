@@ -1,6 +1,6 @@
 project(clash-multiplatform-compat C)
 
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.10)
 
 if (${CMAKE_CROSSCOMPILING})
     message(FATAL_ERROR "Crosscompiling unsupported")
