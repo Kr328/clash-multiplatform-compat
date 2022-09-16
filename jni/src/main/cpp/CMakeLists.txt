@@ -2,24 +2,8 @@ project(clash-multiplatform-compat C)
 
 cmake_minimum_required(VERSION 3.23)
 
-if (${CMAKE_CROSSCOMPILING})
-    message(FATAL_ERROR "Crosscompiling unsupported")
-endif()
-
 if (NOT ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU"))
     message(FATAL_ERROR "Support GCC or Clang only, current ${CMAKE_C_COMPILER_ID}")
-endif()
-
-if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    if (NOT ${IS_64})
-        set(C_FLAGS "${C_FLAGS} -m32")
-    endif()
-elseif(${CMAKE_SIZEOF_VOID_P} EQUAL 4 AND ${IS_64})
-    message(FATAL_ERROR "Only can compile 64-bit library by 64-bit compliler")
-endif()
-
-if(NOT (("${CMAKE_SIZEOF_VOID_P}" EQUAL 8 AND ${IS_64}) OR "${CMAKE_SIZEOF_VOID_P}" EQUAL 4 AND ${IS_64}))
-    message(FATAL_ERROR "Unsupported arch")
 endif()
 
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
