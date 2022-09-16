@@ -34,13 +34,14 @@ if (NOT EXISTS ${JDK_PATH})
     message(FATAL_ERROR "JDK ${JDK_PATH} invalid")
 endif()
 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_LIST_DIR}/external")
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 
 add_subdirectory(external)
 
 include_directories("${JDK_PATH}/include")
 
-set(SRCS main.c window.h window.c theme.h theme.c)
+set(SRCS main.c cleaner.h window.h window.c theme.h theme.c)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     include_directories("${JDK_PATH}/include/win32")
@@ -51,11 +52,14 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
     set(PLATFORM_SRCS window_win32.c theme_win32.c)
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    include_directories("${JDK_PATH}/include/linux")
+    find_package(X11 REQUIRED)
+    find_package(DBus REQUIRED)
+
+    include_directories("${JDK_PATH}/include/linux" "${X11_INCLUDE_DIR}" "${DBUS_INCLUDE_DIRS}")
 
     add_definitions("-D_GNU_SOURCE")
 
-    link_libraries(X11 containers)
+    link_libraries(containers ${X11_LIBRARIES} ${DBUS_LIBRARIES})
 
     set(PLATFORM_SRCS window_linux.c theme_linux.c)
 else()

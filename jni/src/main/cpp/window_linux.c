@@ -1,11 +1,19 @@
 #include "window.h"
 
+#include "cleaner.h"
+
 #include <unordered_map.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <X11/Xlib.h>
+
+#define LOCK(lock) pthread_mutex_lock(lock); CLEANABLE(pthread_mutex_unlock) pthread_mutex_t *__local_lock = lock
+
+CLEANER_NULLABLE(Display*, XCloseDisplay)
+CLEANER_NULLABLE(pthread_mutex_t *, pthread_mutex_unlock)
+CLEANER_NULLABLE(Window *, XFree)
 
 typedef struct {
     ulong left, top, right, bottom;
@@ -55,7 +63,7 @@ static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong displayPtr, jlo
 
         switch (event->type) {
             case DestroyNotify: {
-                pthread_mutex_lock(&windowsLock);
+                LOCK(&windowsLock);
 
                 WindowContext *hints;
                 if (unordered_map_get(&hints, windows, &event->xdestroywindow.window)) {
@@ -66,12 +74,10 @@ static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong displayPtr, jlo
                     unordered_map_remove(windows, &event->xdestroywindow.window);
                 }
 
-                pthread_mutex_unlock(&windowsLock);
-
                 return;
             }
             case ConfigureNotify: {
-                pthread_mutex_lock(&windowsLock);
+                LOCK(&windowsLock);
 
                 WindowContext *context;
                 if (unordered_map_get(&context, windows, &event->xconfigure.window)) {
@@ -81,20 +87,14 @@ static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong displayPtr, jlo
                     }
                 }
 
-                pthread_mutex_unlock(&windowsLock);
-
                 return;
             }
             case ButtonPress: {
                 if (event->xbutton.button == Button1) {
-                    pthread_mutex_lock(&windowsLock);
+                    LOCK(&windowsLock);
 
-                    WindowContext *context = NULL;
-                    unordered_map_get(&context, windows, &event->xbutton.window);
-
-                    pthread_mutex_unlock(&windowsLock);
-
-                    if (context != NULL) {
+                    WindowContext *context;
+                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
                         if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
                             XEvent message = {
                                     .xclient = {
@@ -123,14 +123,10 @@ static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong displayPtr, jlo
                         }
                     }
                 } else if (event->xbutton.button == Button3) {
-                    pthread_mutex_lock(&windowsLock);
+                    LOCK(&windowsLock);
 
-                    WindowContext *context = NULL;
-                    unordered_map_get(&context, windows, &event->xbutton.window);
-
-                    pthread_mutex_unlock(&windowsLock);
-
-                    if (context != NULL) {
+                    WindowContext *context;
+                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
                         if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
                             continue;
                         }
@@ -141,27 +137,19 @@ static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong displayPtr, jlo
             }
             case ButtonRelease: {
                 if (event->xbutton.button == Button1) {
-                    pthread_mutex_lock(&windowsLock);
+                    LOCK(&windowsLock);
 
-                    WindowContext *context = NULL;
-                    unordered_map_get(&context, windows, &event->xbutton.window);
-
-                    pthread_mutex_unlock(&windowsLock);
-
-                    if (context != NULL) {
+                    WindowContext *context;
+                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
                         if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
                             continue;
                         }
                     }
                 } else if (event->xbutton.button == Button3) {
-                    pthread_mutex_lock(&windowsLock);
+                    LOCK(&windowsLock);
 
-                    WindowContext *context = NULL;
-                    unordered_map_get(&context, windows, &event->xbutton.window);
-
-                    pthread_mutex_unlock(&windowsLock);
-
-                    if (context != NULL) {
+                    WindowContext *context;
+                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
                         if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
                             XEvent message = {
                                     .xclient = {
@@ -242,32 +230,29 @@ static void storeWindow(Display *display, Window window, WindowContext *hints) {
 
     Window root = 0;
     Window parent = 0;
+    CLEANABLE(XFree)
     Window *children = NULL;
     uint32_t childrenLength = 0;
 
     XQueryTree(display, window, &root, &parent, &children, &childrenLength);
-
-    if (children != NULL) {
-        for (uint32_t i = 0; i < childrenLength; i++) {
-            storeWindow(display, children[i], hints);
-        }
-
-        XFree(children);
+    for (uint32_t i = 0; i < childrenLength; i++) {
+        storeWindow(display, children[i], hints);
     }
 }
 
 void windowSetWindowBorderless(void *handle) {
     // Just using `undecorated` parameters to create JFrame, all thing will be fine.
 
+    CLEANABLE(XCloseDisplay)
     Display *display = XOpenDisplay(NULL);
     if (display == NULL) {
         fprintf(stderr, "Unable to open display\n");
         abort();
     }
 
-    Window window = (Window) handle;
+    LOCK(&windowsLock);
 
-    pthread_mutex_lock(&windowsLock);
+    Window window = (Window) handle;
 
     WindowContext *hints = malloc(sizeof(*hints));
 
@@ -277,27 +262,21 @@ void windowSetWindowBorderless(void *handle) {
 
     storeWindow(display, window, hints);
 
-    WindowContext *rootHints = NULL;
+    WindowContext *rootHints;
     if (!unordered_map_get(&rootHints, windows, &window) || rootHints != hints) {
         free(hints);
     }
-
-    pthread_mutex_unlock(&windowsLock);
-
-    XCloseDisplay(display);
 }
 
 void windowSetWindowFrameSize(void *handle, enum WindowFrame frame, int size) {
+    LOCK(&windowsLock);
+
     Window window = (Window) handle;
 
-    pthread_mutex_lock(&windowsLock);
-
-    WindowContext *hints = NULL;
+    WindowContext *hints;
     if (unordered_map_get(&hints, windows, &window)) {
         hints->windowFrameSizes[frame] = size;
     }
-
-    pthread_mutex_unlock(&windowsLock);
 }
 
 void windowSetWindowControlPosition(
@@ -308,17 +287,15 @@ void windowSetWindowControlPosition(
         int right,
         int bottom
 ) {
+    LOCK(&windowsLock);
+
     Window window = (Window) handle;
 
-    pthread_mutex_lock(&windowsLock);
-
-    WindowContext *hints = NULL;
+    WindowContext *hints;
     if (unordered_map_get(&hints, windows, &window)) {
         hints->windowControlPositions[control].left = left;
         hints->windowControlPositions[control].top = top;
         hints->windowControlPositions[control].right = right;
         hints->windowControlPositions[control].bottom = bottom;
     }
-
-    pthread_mutex_unlock(&windowsLock);
 }
