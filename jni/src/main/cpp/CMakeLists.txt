@@ -23,7 +23,7 @@ if(NOT (("${CMAKE_SIZEOF_VOID_P}" EQUAL 8 AND ${IS_64}) OR "${CMAKE_SIZEOF_VOID_
 endif()
 
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden -fvisibility-inlines-hidden")
+    set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden")
     set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,-exclude-libs,ALL -Wl,--gc-sections")
 else ()
     add_definitions(-DDEBUG)
@@ -34,6 +34,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_LIST_DIR}/external
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 set(CMAKE_SKIP_BUILD_RPATH 1)
+set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${C_FLAGS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
 add_subdirectory(external)
 
@@ -65,3 +69,8 @@ link_libraries(${JAVA_JVM_LIBRARY})
 set(SRCS main.c cleaner.h window.h window.c theme.h theme.c)
 
 add_library(compat SHARED ${SRCS} ${PLATFORM_SRCS})
+
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_custom_command(TARGET compat POST_BUILD
+            COMMAND ${CMAKE_STRIP} --strip-all --remove-section=.comment "${PROJECT_BINARY_DIR}/libcompat.so")
+endif ()
