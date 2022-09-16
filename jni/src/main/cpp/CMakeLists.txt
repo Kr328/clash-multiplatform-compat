@@ -30,45 +30,38 @@ else ()
     set(C_FLAGS "${C_FLAGS} -O0")
 endif ()
 
-if (NOT EXISTS ${JDK_PATH})
-    message(FATAL_ERROR "JDK ${JDK_PATH} invalid")
-endif()
-
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_LIST_DIR}/external")
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
+set(CMAKE_SKIP_BUILD_RPATH 1)
 
 add_subdirectory(external)
-
-include_directories("${JDK_PATH}/include")
-
-set(SRCS main.c cleaner.h window.h window.c theme.h theme.c)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     include_directories("${JDK_PATH}/include/win32")
 
-    add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
-
     link_libraries(dwmapi)
 
+    add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
     set(PLATFORM_SRCS window_win32.c theme_win32.c)
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     find_package(X11 REQUIRED)
     find_package(DBus REQUIRED)
 
-    include_directories("${JDK_PATH}/include/linux" "${X11_INCLUDE_DIR}" "${DBUS_INCLUDE_DIRS}")
+    include_directories("${X11_X11_INCLUDE_PATH}" "${DBUS_INCLUDE_DIRS}")
+    link_libraries(containers ${X11_X11_LIB} ${DBUS_LIBRARIES})
 
     add_definitions("-D_GNU_SOURCE")
-
-    link_libraries(containers ${X11_LIBRARIES} ${DBUS_LIBRARIES})
-
     set(PLATFORM_SRCS window_linux.c theme_linux.c)
 else()
     message(FATAL_ERROR "Unsupported OS ${CMAKE_SYSTEM_NAME}")
 endif()
 
-link_directories("${JDK_PATH}/lib")
-link_directories("${JDK_PATH}/lib/server")
+find_package(JNI REQUIRED)
 
-link_libraries(jvm)
+include_directories("${JNI_INCLUDE_DIRS}")
+link_libraries(${JAVA_JVM_LIBRARY})
+
+set(SRCS main.c cleaner.h window.h window.c theme.h theme.c)
 
 add_library(compat SHARED ${SRCS} ${PLATFORM_SRCS})
