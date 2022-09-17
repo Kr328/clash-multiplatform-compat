@@ -69,6 +69,8 @@ jobs:
           path-type: minimal
           install: >-
             mingw-w64-x86_64-toolchain
+            cmake
+            ninja
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish
