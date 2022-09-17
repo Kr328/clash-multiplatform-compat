@@ -94,6 +94,8 @@ jobs:
       - uses: lukka/get-cmake@latest
       - run: |
           C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-gcc"
+          
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw32\bin"
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish
