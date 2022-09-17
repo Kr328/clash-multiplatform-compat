@@ -99,10 +99,10 @@ jobs:
             mingw-w64-i686-toolchain
       - run: gcc -v
         env:
-          Path: "C:\msys64\mingw32\bin;${{env.Path}}"
+          Path: "C:\\msys64\\mingw32\\bin;${{env.Path}}"
       - uses: gradle/gradle-build-action@v2
         env:
-          Path: "C:\msys64\mingw32\bin;${{env.Path}}"
+          Path: "C:\\msys64\\mingw32\\bin;${{env.Path}}"
         with:
           arguments: --no-daemon :jni:publish
 
