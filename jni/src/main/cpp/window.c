@@ -3,15 +3,15 @@
 #include <jni.h>
 
 static void jniSetWindowBorderless(JNIEnv *env, jclass clazz, jlong handle) {
-    windowSetWindowBorderless((void *) handle);
+    windowSetWindowBorderless((void *) (long) handle);
 }
 
 static void jniSetWindowFrameSize(JNIEnv *env, jclass clazz, jlong handle, jint frame, jint size) {
-    windowSetWindowFrameSize((void *) handle, frame, size);
+    windowSetWindowFrameSize((void *) (long) handle, frame, size);
 }
 
 static void jniSetWindowControlPosition(JNIEnv *env, jclass clazz, jlong handle, jint control, jint left, jint top, jint right, jint bottom) {
-    windowSetWindowControlPosition((void *) handle, control, left, top, right, bottom);
+    windowSetWindowControlPosition((void *) (long) handle, control, left, top, right, bottom);
 }
 
 int loadWindow(JNIEnv *env) {

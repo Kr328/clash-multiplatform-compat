@@ -5,6 +5,7 @@
 #include "theme.h"
 
 JNIEXPORT
+JNICALL
 __attribute__((unused))
 jint JNI_OnLoad(JavaVM *vm, __attribute__((unused)) void *reserved) {
     JNIEnv *env = NULL;

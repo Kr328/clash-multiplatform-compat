@@ -58,7 +58,6 @@ jobs:
       - uses: gradle/gradle-build-action@v2
         env:
           PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
-          CFLGAS: -Wint-to-pointer-cast
         with:
           arguments: --no-daemon :jni:publish
   publish-windows-amd64:
@@ -77,7 +76,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           install: >-
-            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-toolchain
       - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw64\bin"
       - uses: gradle/gradle-build-action@v2
         with:
@@ -97,7 +96,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           install: >-
-            mingw-w64-i686-gcc
+            mingw-w64-i686-toolchain
       - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw32\bin"
       - uses: gradle/gradle-build-action@v2
         with:
