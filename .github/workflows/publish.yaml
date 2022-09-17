@@ -73,14 +73,13 @@ jobs:
           java-version: 17
           architecture: x64
       - uses: lukka/get-cmake@latest
-      - uses: msys2/setup-msys2@v2
-        with:
-          install: >-
-            mingw-w64-x86_64-toolchain
-      - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw64\bin"
+      - run: |
+          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-gcc"
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish
+        env:
+          CC: C:\msys64\mingw64\bin\gcc.exe
   publish-windows-i386:
     runs-on: windows-latest
     steps:
@@ -95,12 +94,8 @@ jobs:
       - uses: lukka/get-cmake@latest
       - run: |
           C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-gcc"
-      - run: |
-          $env:Path = "C:\msys64\mingw32\bin;$env:Path"
-          gcc -v
-          C:\msys64\mingw32\bin\gcc -v
-          .\gradlew.bat --no-daemon :jni:publish
+      - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish
         env:
-          CC: C:\msys64\mingw32\bin\gcc
-
-
+          CC: C:\msys64\mingw32\bin\gcc.exe
