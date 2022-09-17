@@ -25,12 +25,12 @@ set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
 add_subdirectory(external)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     link_libraries(dwmapi)
 
     add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
     set(PLATFORM_SRCS window_win32.c theme_win32.c)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     find_package(X11 REQUIRED)
     find_package(DBus REQUIRED)
 
@@ -53,5 +53,5 @@ add_library(compat SHARED ${SRCS} ${PLATFORM_SRCS})
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_command(TARGET compat POST_BUILD
-            COMMAND ${CMAKE_STRIP} --strip-all --remove-section=.comment "${PROJECT_BINARY_DIR}/libcompat.so")
+            COMMAND ${CMAKE_STRIP} --strip-all --remove-section=.comment "${PROJECT_BINARY_DIR}/libcompat${CMAKE_SHARED_LIBRARY_SUFFIX}")
 endif ()

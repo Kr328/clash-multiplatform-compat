@@ -33,11 +33,8 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
         "cmake",
         "-G", "Ninja",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DJAVA_HOME=${System.getProperty("java.home")}",
+        "-DJAVA_HOME=${System.getProperty("java.home").replace(File.separatorChar, '/')}",
         file("src/main/cpp")
-    )
-    environment(
-        "PATH" to System.getenv("PATH").replace(File.separatorChar, '/')
     )
     if (!is64) {
         environment(

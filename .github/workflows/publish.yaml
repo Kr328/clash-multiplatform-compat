@@ -64,13 +64,12 @@ jobs:
           distribution: zulu
           java-version: 17
           architecture: x64
+      - uses: lukka/get-cmake@latest
       - uses: msys2/setup-msys2@v2
         with:
-          path-type: minimal
           install: >-
             mingw-w64-x86_64-toolchain
-            cmake
-            ninja
+      - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw64\bin"
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish
