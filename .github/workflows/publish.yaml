@@ -100,6 +100,7 @@ jobs:
       - shell: msys2 {0}
         run: |
           pacman -Ql mingw-w64-i686-gcc
+          mount
 #      - run: |
 #          $env:Path = "C:\msys64\mingw32\bin;$env:Path"
 #          gcc -v
