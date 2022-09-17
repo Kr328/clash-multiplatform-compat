@@ -6,7 +6,6 @@ on:
 
 jobs:
   publish-base:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,9 +18,8 @@ jobs:
           architecture: x64
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :base:publish
+          arguments: --no-daemon :base:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
   publish-linux-amd64:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -37,9 +35,8 @@ jobs:
           sudo apt-get install -y gcc libdbus-1-dev libx11-dev cmake ninja-build
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
   publish-linux-i386:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -56,12 +53,11 @@ jobs:
           sudo apt-get install -y gcc-multilib libdbus-1-dev:i386 libx11-dev:i386 cmake ninja-build
           sudo apt-get install -y zlib1g:i386
       - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
         env:
           PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
-        with:
-          arguments: --no-daemon :jni:publish
   publish-windows-amd64:
-    if: false
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -75,9 +71,11 @@ jobs:
       - uses: lukka/get-cmake@latest
       - run: |
           C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-gcc"
+
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw64\bin"
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
         env:
           CC: C:\msys64\mingw64\bin\gcc.exe
   publish-windows-i386:
@@ -98,6 +96,6 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw32\bin"
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
         env:
           CC: C:\msys64\mingw32\bin\gcc.exe

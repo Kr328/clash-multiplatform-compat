@@ -39,9 +39,6 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
     if (!is64) {
         environment("CFLAGS" to "${System.getenv("CFLAGS") ?: ""} -m32")
     }
-    if (System.getenv("TOOLCHAINS_ROOT") != null) {
-        environment("PATH" to "${System.getenv("TOOLCHAINS_ROOT")}${File.pathSeparatorChar}${System.getenv("PATH")}")
-    }
 }
 
 val compile = task("compileJniLibs", type = Exec::class) {

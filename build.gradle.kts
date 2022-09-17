@@ -1,7 +1,7 @@
 val latestTag = Runtime.getRuntime()
     .exec("git describe --tags --abbrev=0")
     .inputStream.readBytes().toString(Charsets.UTF_8).trim()
-    .takeIf { it.isNotEmpty() } ?: "unknown"
+    .takeIf { it.isNotEmpty() } ?: "master"
 
 subprojects {
     group = "com.github.kr328.clash.compat"
@@ -46,6 +46,11 @@ subprojects {
                 }
                 repositories {
                     mavenLocal()
+                    maven {
+                        name = "kr328app"
+                        url = uri("https://maven.kr328.app/releases")
+                        credentials(PasswordCredentials::class)
+                    }
                 }
             }
         }
