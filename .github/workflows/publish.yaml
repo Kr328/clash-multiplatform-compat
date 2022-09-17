@@ -99,6 +99,6 @@ jobs:
             mingw-w64-i686-toolchain
       - run: |
           $env:Path = "C:\msys64\mingw32\bin;$env:Path"
-          ./gradlew --no-daemon :jni:publish
+          .\gradlew.bat --no-daemon :jni:publish
 
 
