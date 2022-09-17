@@ -98,6 +98,7 @@ jobs:
           install: >-
             mingw-w64-i686-toolchain
       - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw32\bin"
+      - run: gcc -v
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish
