@@ -97,7 +97,11 @@ jobs:
         with:
           install: >-
             mingw-w64-i686-toolchain
-      - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw32\bin"
+      - shell: msys2 {0}
+        run: |
+          _PATH="$(cat $GITHUB_PATH)"
+          echo "C:\msys64\mingw32\bin" > $GITHUB_PATH
+          echo "$_PATH" >> $GITHUB_PATH
       - run: gcc -v
       - uses: gradle/gradle-build-action@v2
         with:
