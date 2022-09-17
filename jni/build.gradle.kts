@@ -36,6 +36,9 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
         "-DJAVA_HOME=${System.getProperty("java.home")}",
         file("src/main/cpp")
     )
+    environment(
+        "PATH" to System.getenv("PATH").replace(File.separatorChar, '/')
+    )
     if (!is64) {
         environment(
             "CFLAGS" to "${System.getenv("CFLAGS")} -m32",

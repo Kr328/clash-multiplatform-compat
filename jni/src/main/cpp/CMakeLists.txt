@@ -6,8 +6,6 @@ if (NOT ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" S
     message(FATAL_ERROR "Support GCC or Clang only, current ${CMAKE_C_COMPILER_ID}")
 endif()
 
-file(TO_CMAKE_PATH $ENV{PATH} $ENV{PATH})
-
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden")
     set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,-exclude-libs,ALL -Wl,--gc-sections")
