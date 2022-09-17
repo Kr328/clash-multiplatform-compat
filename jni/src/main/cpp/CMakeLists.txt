@@ -6,6 +6,8 @@ if (NOT ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" S
     message(FATAL_ERROR "Support GCC or Clang only, current ${CMAKE_C_COMPILER_ID}")
 endif()
 
+file(TO_CMAKE_PATH $ENV{PATH} $ENV{PATH})
+
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden")
     set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,-exclude-libs,ALL -Wl,--gc-sections")
@@ -26,8 +28,6 @@ set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 add_subdirectory(external)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    include_directories("${JDK_PATH}/include/win32")
-
     link_libraries(dwmapi)
 
     add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
@@ -39,7 +39,6 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     include_directories("${X11_X11_INCLUDE_PATH}" "${DBUS_INCLUDE_DIRS}")
     link_libraries(containers ${X11_X11_LIB} ${DBUS_LIBRARIES})
 
-    add_definitions("-D_GNU_SOURCE")
     set(PLATFORM_SRCS window_linux.c theme_linux.c)
 else()
     message(FATAL_ERROR "Unsupported OS ${CMAKE_SYSTEM_NAME}")
