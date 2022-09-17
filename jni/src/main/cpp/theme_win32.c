@@ -4,7 +4,7 @@
 
 static HKEY personalizeKey = NULL;
 
-static DWORD themeMonitor(LPVOID lpParam) {
+static DWORD __attribute__((stdcall)) themeMonitor(LPVOID lpParam) {
     while (1) {
         LRESULT r = RegNotifyChangeKeyValue(
                 personalizeKey,
@@ -47,7 +47,7 @@ int themeInit(OnThemeChangedListener listener) {
         return 0;
     }
 
-    CreateThread(NULL,0,&themeMonitor,listener,0,NULL);
+    CreateThread(NULL, 0, &themeMonitor, listener, 0, NULL);
 
     return 0;
 }

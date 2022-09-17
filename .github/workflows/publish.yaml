@@ -1,0 +1,122 @@
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: false
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x64
+      - name: Build & Publish
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :base:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+  publish-linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x64
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gcc libdbus-1-dev libx11-dev cmake ninja-build
+      - name: Build & Publish
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+  publish-linux-x86:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x86
+      - name: Install Dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-multilib libdbus-1-dev:i386 libx11-dev:i386 cmake ninja-build
+          sudo apt-get install -y zlib1g:i386
+      - name: Build & Publish
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+        env:
+          PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
+  publish-windows-amd64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x64
+      - name: Install CMake & Ninja
+        uses: lukka/get-cmake@latest
+      - name: Install Compiler
+        run: |
+          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-gcc"
+
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw64\bin"
+      - name: Build & Publish
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+        env:
+          CC: C:\msys64\mingw64\bin\gcc.exe
+  publish-windows-x86:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x86
+      - name: Install CMake & Ninja
+        uses: lukka/get-cmake@latest
+      - name: Install Compiler
+        run: |
+          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-gcc"
+          
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw32\bin"
+      - name: Build & Publish
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+        env:
+          CC: C:\msys64\mingw32\bin\gcc.exe

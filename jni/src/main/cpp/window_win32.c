@@ -183,7 +183,7 @@ static LRESULT delegateWindowProcedure(
     return CallWindowProcA(awtProc, handle, message, wParam, lParam);
 }
 
-static BOOL attachToWindow(HWND handle, LPARAM lparam) {
+static BOOL __attribute__((stdcall)) attachToWindow(HWND handle, LPARAM lparam) {
     if (GetPropA(handle, KEY_AWT_WINDOW_PROCEDURE) || GetPropA(handle, KEY_WINDOW_CONTEXT)) {
         return TRUE;
     }

@@ -13,7 +13,11 @@ val os = when {
 val currentOSArch = System.getProperty("os.arch").toLowerCase()
 val archWith64 = when {
     currentOSArch.contains("amd64") -> "amd64" to true
-    currentOSArch.contains("x86") -> "i386" to false
+    currentOSArch.contains("x86_64") -> "amd64" to true
+    currentOSArch.contains("x64") -> "amd64" to true
+    currentOSArch.contains("x86") -> "x86" to false
+    currentOSArch.contains("386") -> "x86" to false
+    currentOSArch.contains("686") -> "x86" to false
     else -> throw UnsupportedOperationException("Unsupported arch: $currentOSArch")
 }
 val (arch, is64) = archWith64
@@ -29,10 +33,12 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
         "cmake",
         "-G", "Ninja",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DJAVA_HOME=${System.getProperty("java.home")}",
-        "-DIS_64=${is64}",
+        "-DJAVA_HOME=${System.getProperty("java.home").replace(File.separatorChar, '/')}",
         file("src/main/cpp")
     )
+    if (!is64) {
+        environment("CFLAGS" to "${System.getenv("CFLAGS") ?: ""} -m32")
+    }
 }
 
 val compile = task("compileJniLibs", type = Exec::class) {

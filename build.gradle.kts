@@ -1,6 +1,11 @@
+val releaseTag = Runtime.getRuntime()
+    .exec("git describe --exact-match --tags HEAD")
+    .inputStream.readBytes().toString(Charsets.UTF_8).trim()
+    .takeIf { it.isNotEmpty() } ?: "master"
+
 subprojects {
     group = "com.github.kr328.clash.compat"
-    version = "1.0.0"
+    version = releaseTag
 
     plugins.withId("java") {
         configure<JavaPluginExtension> {
@@ -41,8 +46,19 @@ subprojects {
                 }
                 repositories {
                     mavenLocal()
+                    maven {
+                        name = "kr328app"
+                        url = uri("https://maven.kr328.app/releases")
+                        credentials(PasswordCredentials::class)
+                    }
                 }
             }
         }
     }
+}
+
+task("clean", type = Delete::class) {
+    group = "build"
+
+    delete(buildDir)
 }
