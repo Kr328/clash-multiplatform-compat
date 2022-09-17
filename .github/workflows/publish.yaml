@@ -1,0 +1,75 @@
+on:
+  workflow_dispatch: {}
+  release:
+    types:
+      - released
+
+jobs:
+  publish-base:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x64
+      - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :base:publish
+  publish-linux-amd64:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x64
+      - run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gcc libdbus-1-dev libx11-dev cmake ninja-build
+      - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish
+  publish-linux-i386:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x86
+      - run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-multilib libdbus-1-dev:i386 libx11-dev:i386 cmake ninja-build
+          sudo apt-get install -y zlib1g:i386
+      - uses: gradle/gradle-build-action@v2
+        env:
+          PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
+          CFLGAS: -Wint-to-pointer-cast
+        with:
+          arguments: --no-daemon :jni:publish
+  publish-windows-amd64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x64
+      - uses: msys2/setup-msys2@v2
+        with:
+          path-type: minimal
+          install: >-
+            mingw-w64-x86_64-toolchain
+      - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish
+

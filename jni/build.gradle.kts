@@ -38,8 +38,8 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
     )
     if (!is64) {
         environment(
-            "CFLAGS" to "-m32",
-            "LDFLAGS" to "-m32",
+            "CFLAGS" to "${System.getenv("CFLAGS")} -m32",
+            "LDFLAGS" to "${System.getenv("LDFLAGS")} -m32",
         )
     }
 }
