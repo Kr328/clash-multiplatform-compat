@@ -62,6 +62,7 @@ jobs:
         with:
           arguments: --no-daemon :jni:publish
   publish-windows-amd64:
+    if: false
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -81,4 +82,25 @@ jobs:
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish
+  publish-windows-i386:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          architecture: x86
+      - uses: lukka/get-cmake@latest
+      - uses: msys2/setup-msys2@v2
+        with:
+          install: >-
+            mingw-w64-i686-gcc
+      - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw32\bin"
+      - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon :jni:publish
+
 
