@@ -1,17 +1,18 @@
 #include "window.h"
 
 #include <jni.h>
+#include <stdint.h>
 
 static void jniSetWindowBorderless(JNIEnv *env, jclass clazz, jlong handle) {
-    windowSetWindowBorderless((void *) (long) handle);
+    windowSetWindowBorderless((void *) (uintptr_t) handle);
 }
 
 static void jniSetWindowFrameSize(JNIEnv *env, jclass clazz, jlong handle, jint frame, jint size) {
-    windowSetWindowFrameSize((void *) (long) handle, frame, size);
+    windowSetWindowFrameSize((void *) (uintptr_t) handle, frame, size);
 }
 
 static void jniSetWindowControlPosition(JNIEnv *env, jclass clazz, jlong handle, jint control, jint left, jint top, jint right, jint bottom) {
-    windowSetWindowControlPosition((void *) (long) handle, control, left, top, right, bottom);
+    windowSetWindowControlPosition((void *) (uintptr_t) handle, control, left, top, right, bottom);
 }
 
 int loadWindow(JNIEnv *env) {
