@@ -1,8 +1,8 @@
 on:
   workflow_dispatch: {}
-  release:
-    types:
-      - released
+  push:
+    branches:
+      - main
 
 jobs:
   publish-base:
@@ -18,7 +18,7 @@ jobs:
           architecture: x64
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :base:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
+          arguments: --no-daemon :base:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
   publish-linux-amd64:
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +35,7 @@ jobs:
           sudo apt-get install -y gcc libdbus-1-dev libx11-dev cmake ninja-build
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
   publish-linux-i386:
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +54,7 @@ jobs:
           sudo apt-get install -y zlib1g:i386
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
         env:
           PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
   publish-windows-amd64:
@@ -75,7 +75,7 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw64\bin"
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
         env:
           CC: C:\msys64\mingw64\bin\gcc.exe
   publish-windows-i386:
@@ -96,6 +96,6 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\mingw32\bin"
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appUsername=${{ secrets.PUBLISH_PASSWORD }}
+          arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
         env:
           CC: C:\msys64\mingw32\bin\gcc.exe

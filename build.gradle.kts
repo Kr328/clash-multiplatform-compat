@@ -1,11 +1,11 @@
-val latestTag = Runtime.getRuntime()
-    .exec("git describe --tags --abbrev=0")
+val releaseTag = Runtime.getRuntime()
+    .exec("git describe --exact-match --tags HEAD")
     .inputStream.readBytes().toString(Charsets.UTF_8).trim()
     .takeIf { it.isNotEmpty() } ?: "master"
 
 subprojects {
     group = "com.github.kr328.clash.compat"
-    version = latestTag
+    version = releaseTag
 
     plugins.withId("java") {
         configure<JavaPluginExtension> {
