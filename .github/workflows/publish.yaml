@@ -87,22 +87,25 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/setup-java@v3
-        with:
-          distribution: zulu
-          java-version: 17
-          architecture: x86
-      - uses: lukka/get-cmake@latest
+#      - uses: actions/setup-java@v3
+#        with:
+#          distribution: zulu
+#          java-version: 17
+#          architecture: x86
+#      - uses: lukka/get-cmake@latest
       - uses: msys2/setup-msys2@v2
         with:
           install: >-
-            mingw-w64-i686-toolchain
-      - run: |
-          $env:Path = "C:\msys64\mingw32\bin;$env:Path"
-          gcc -v
-          C:\msys64\mingw32\bin\gcc -v
-          .\gradlew.bat --no-daemon :jni:publish
-        env:
-          TOOLCHAINS_ROOT: C:\msys64\mingw32\bin
+            mingw-w64-i686-gcc
+      - shell: msys2 {0}
+        run: |
+          pacman -Ql mingw-w64-i686-gcc
+#      - run: |
+#          $env:Path = "C:\msys64\mingw32\bin;$env:Path"
+#          gcc -v
+#          C:\msys64\mingw32\bin\gcc -v
+#          .\gradlew.bat --no-daemon :jni:publish
+#        env:
+#          TOOLCHAINS_ROOT: C:\msys64\mingw32\bin
 
 
