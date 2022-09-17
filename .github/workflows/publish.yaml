@@ -76,7 +76,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           install: >-
-            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-gcc
       - run: Add-Content $env:GITHUB_PATH "C:\msys64\mingw64\bin"
       - uses: gradle/gradle-build-action@v2
         with:

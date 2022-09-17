@@ -23,14 +23,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_FLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
-add_subdirectory(external)
-
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     link_libraries(dwmapi)
 
     add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
     set(PLATFORM_SRCS window_win32.c theme_win32.c)
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    add_subdirectory(external)
     find_package(X11 REQUIRED)
     find_package(DBus REQUIRED)
 
