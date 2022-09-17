@@ -15,9 +15,9 @@ val archWith64 = when {
     currentOSArch.contains("amd64") -> "amd64" to true
     currentOSArch.contains("x86_64") -> "amd64" to true
     currentOSArch.contains("x64") -> "amd64" to true
-    currentOSArch.contains("x86") -> "i386" to false
-    currentOSArch.contains("386") -> "i386" to false
-    currentOSArch.contains("686") -> "i386" to false
+    currentOSArch.contains("x86") -> "x86" to false
+    currentOSArch.contains("386") -> "x86" to false
+    currentOSArch.contains("686") -> "x86" to false
     else -> throw UnsupportedOperationException("Unsupported arch: $currentOSArch")
 }
 val (arch, is64) = archWith64

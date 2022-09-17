@@ -24,10 +24,10 @@ final class Compat {
         final String osArch = System.getProperty("os.arch").toLowerCase();
 
         final String arch;
-        if (osArch.contains("amd64")) {
+        if (osArch.contains("amd64") || osArch.contains("x86_64")) {
             arch = "amd64";
-        } else if (osArch.contains("x86")) {
-            arch = "i386";
+        } else if (osArch.contains("x86") || osArch.contains("386") || osArch.contains("686")) {
+            arch = "x86";
         } else {
             throw new LinkageError("Unsupported arch " + osArch);
         }
