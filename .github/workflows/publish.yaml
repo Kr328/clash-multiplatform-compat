@@ -1,5 +1,8 @@
 on:
   workflow_dispatch: {}
+  release:
+    types:
+      - published
   push:
     branches:
       - main
@@ -22,6 +25,8 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :base:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+        env:
+          TAG: ${{ github.event.release.tag_name }}
   publish-linux-amd64:
     runs-on: ubuntu-latest
     steps:
@@ -43,6 +48,8 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
+        env:
+          TAG: ${{ github.event.release.tag_name }}
   publish-linux-x86:
     runs-on: ubuntu-latest
     steps:
@@ -68,6 +75,7 @@ jobs:
           arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
         env:
           PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
+          TAG: ${{ github.event.release.tag_name }}
   publish-windows-amd64:
     runs-on: windows-latest
     steps:
@@ -94,6 +102,7 @@ jobs:
           arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
         env:
           CC: C:\msys64\mingw64\bin\gcc.exe
+          TAG: ${{ github.event.release.tag_name }}
   publish-windows-x86:
     runs-on: windows-latest
     steps:
@@ -120,3 +129,4 @@ jobs:
           arguments: --no-daemon :jni:publish -Pkr328appUsername=${{ secrets.PUBLISH_USERNAME }} -Pkr328appPassword=${{ secrets.PUBLISH_PASSWORD }}
         env:
           CC: C:\msys64\mingw32\bin\gcc.exe
+          TAG: ${{ github.event.release.tag_name }}
