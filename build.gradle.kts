@@ -1,7 +1,4 @@
-val releaseTag = Runtime.getRuntime()
-    .exec("git describe --exact-match --tags HEAD")
-    .inputStream.readBytes().toString(Charsets.UTF_8).trim()
-    .takeIf { it.isNotEmpty() } ?: "master"
+val releaseTag = System.getenv("TAG")?.trim()?.takeIf(String::isNotEmpty) ?: "latest"
 
 subprojects {
     group = "com.github.kr328.clash.compat"
