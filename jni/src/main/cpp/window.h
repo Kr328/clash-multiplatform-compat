@@ -4,6 +4,7 @@
 
 enum WindowControl {
     CLOSE_BUTTON,
+    BACK_BUTTON,
     WINDOW_CONTROL_END
 };
 

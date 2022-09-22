@@ -30,5 +30,6 @@ public final class WindowCompat {
 
     public enum WindowControl {
         CLOSE_BUTTON,
+        BACK_BUTTON
     }
 }
