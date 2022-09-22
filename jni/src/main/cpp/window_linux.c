@@ -39,6 +39,9 @@ static int isInTitleBar(WindowContext *context, ulong x, ulong y) {
     if (isPointInRect(x, y, &context->windowControlPositions[CLOSE_BUTTON])) {
         return 0;
     }
+    if (isPointInRect(x, y, &context->windowControlPositions[BACK_BUTTON])) {
+        return 0;
+    }
 
     ulong width = context->windowWidth;
     ulong height = context->windowHeight;

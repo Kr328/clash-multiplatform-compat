@@ -29,6 +29,9 @@ static LRESULT hitNonClient(WindowContext *context, int x, int y) {
     if (isPointInRect(x, y, &context->windowControlPositions[CLOSE_BUTTON])) {
         return HTCLIENT;
     }
+    if (isPointInRect(x, y, &context->windowControlPositions[BACK_BUTTON])) {
+        return HTCLIENT;
+    }
 
     int width = context->windowRectNow.right - context->windowRectNow.left;
     int height = context->windowRectNow.bottom - context->windowRectNow.top;
