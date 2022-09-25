@@ -18,6 +18,7 @@ import java.util.concurrent.*;
 public final class ProcessCompat {
     private static final ExecutorService MONITOR_POOL = Executors.newCachedThreadPool((runnable) -> {
         final Thread thread = new Thread(runnable);
+        thread.setName("Process-Monitor-Thread");
         thread.setDaemon(true);
         return thread;
     });
@@ -84,12 +85,10 @@ public final class ProcessCompat {
                 stderr
         );
 
-        final CompletableFuture<Integer> monitor = new CompletableFuture<>();
-        MONITOR_POOL.submit(() -> {
+        final Future<Integer> monitor = MONITOR_POOL.submit(() -> {
             int exitCode = nativeWaitProcess(handle);
-
+            nativeTerminateProcess(handle);
             nativeReleaseProcess(handle);
-
             return exitCode;
         });
 

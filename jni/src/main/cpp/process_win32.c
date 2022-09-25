@@ -136,14 +136,12 @@ int processCreate(
         goto error;
     }
 
-    fprintf(stderr, "path = %s args = %s", path, (const char *) vector_get_data(joinedArgs));
-    fflush(stderr);
-
     CloseHandle(stdoutW);
     CloseHandle(stdinR);
     CloseHandle(stderrW);
     CloseHandle(info.hThread);
-    *(HANDLE *) handle = info.hProcess;
+
+    *handle = info.hProcess;
 
     return 0;
 
@@ -165,13 +163,9 @@ int processCreate(
 }
 
 int processWait(void *handle) {
-    if (WaitForSingleObject(handle, INFINITE)) {
-        return -1;
-    }
-
-    DWORD code;
-    if (!GetExitCodeProcess(handle, &code)) {
-        return -1;
+    DWORD code = 1;
+    while (GetExitCodeProcess(handle, &code) && code == STILL_ACTIVE) {
+        WaitForSingleObject(handle, INFINITE);
     }
 
     return (int) code;
