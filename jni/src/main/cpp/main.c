@@ -23,7 +23,7 @@ jint JNI_OnLoad(JavaVM *vm, __attribute__((unused)) void *reserved) {
         goto error;
     }
 
-    if (themeOnLoaded(env)) {
+    if (loadTheme(env)) {
         goto error;
     }
 
