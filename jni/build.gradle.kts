@@ -32,7 +32,7 @@ val prepare = task("prepareCompileJniLibs", type = Exec::class) {
     commandLine(
         "cmake",
         "-G", "Ninja",
-        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_BUILD_TYPE=${if (System.getenv("DEBUG") != null) "Debug" else "Release"}",
         "-DJAVA_HOME=${System.getProperty("java.home").replace(File.separatorChar, '/')}",
         file("src/main/cpp")
     )
