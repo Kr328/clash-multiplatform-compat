@@ -36,7 +36,7 @@ static void onThemeChanged() {
     (*javaVm)->DetachCurrentThread(javaVm);
 }
 
-int themeOnLoaded(JNIEnv *env) {
+int loadTheme(JNIEnv *env) {
     if (themeInit(&onThemeChanged)) {
         return 1;
     }

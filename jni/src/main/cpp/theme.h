@@ -4,7 +4,7 @@
 
 typedef void (*OnThemeChangedListener)();
 
-int themeOnLoaded(JNIEnv *env);
+int loadTheme(JNIEnv *env);
 int themeInit(OnThemeChangedListener listener);
 int themeIsSupported();
 int themeIsNightMode();
