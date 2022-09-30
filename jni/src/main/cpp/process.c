@@ -1,5 +1,7 @@
 #include "process.h"
 
+#include <malloc.h>
+
 static jfieldID fieldFileDescriptorFd;
 static jfieldID fieldFileDescriptorHandle;
 static jmethodID methodFileDescriptorClose;
@@ -15,10 +17,10 @@ static jlong jniCreateProcess(
         jobject fdStdin,
         jobject fdStderr
 ) {
-    resourceHandle hProcess = INVALID_HANDLE_VALUE;
-    resourceHandle hStdout = INVALID_HANDLE_VALUE;
-    resourceHandle hStdin = INVALID_HANDLE_VALUE;
-    resourceHandle hStderr = INVALID_HANDLE_VALUE;
+    resourceHandle hProcess = INVALID_RESOURCE_HANDLE;
+    resourceHandle hStdout = INVALID_RESOURCE_HANDLE;
+    resourceHandle hStdin = INVALID_RESOURCE_HANDLE;
+    resourceHandle hStderr = INVALID_RESOURCE_HANDLE;
 
     jbyte *cPath = (*env)->GetByteArrayElements(env, path, NULL);
 
@@ -72,6 +74,7 @@ static jlong jniCreateProcess(
         return -1;
     }
 
+#if defined(__WIN32__)
     if (fdStdout != NULL) {
         (*env)->SetLongField(env, fdStdout, fieldFileDescriptorHandle, (jlong) hStdout);
     }
@@ -81,6 +84,17 @@ static jlong jniCreateProcess(
     if (fdStderr != NULL) {
         (*env)->SetLongField(env, fdStderr, fieldFileDescriptorHandle, (jlong) hStderr);
     }
+#elif defined(__linux__)
+    if (fdStdout != NULL) {
+        (*env)->SetIntField(env, fdStdout, fieldFileDescriptorFd, (jint) hStdout);
+    }
+    if (fdStdin != NULL) {
+        (*env)->SetIntField(env, fdStdin, fieldFileDescriptorFd, (jint) hStdin);
+    }
+    if (fdStderr != NULL) {
+        (*env)->SetIntField(env, fdStderr, fieldFileDescriptorFd, (jint) hStderr);
+    }
+#endif
 
     return (jlong) hProcess;
 }

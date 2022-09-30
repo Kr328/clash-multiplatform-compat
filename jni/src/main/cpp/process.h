@@ -3,10 +3,16 @@
 #include <jni.h>
 #include <stdint.h>
 
-#ifdef __WIN32__
+#if defined(__WIN32__)
 #include <windows.h>
 
+#define INVALID_RESOURCE_HANDLE INVALID_HANDLE_VALUE
+
 typedef HANDLE resourceHandle;
+#elif defined(__linux__)
+#define INVALID_RESOURCE_HANDLE (-1)
+
+typedef int resourceHandle;
 #endif
 
 int loadProcess(JNIEnv *env);
