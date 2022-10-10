@@ -24,7 +24,7 @@ public final class ProcessCompat {
     });
 
     static {
-        Compat.load();
+        CompatLibrary.load();
     }
 
     private static byte[] toNativeString(final String str) {

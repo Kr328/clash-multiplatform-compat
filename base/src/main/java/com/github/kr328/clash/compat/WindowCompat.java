@@ -2,7 +2,7 @@ package com.github.kr328.clash.compat;
 
 public final class WindowCompat {
     static {
-        Compat.load();
+        CompatLibrary.load();
     }
 
     private static native void nativeSetWindowFrameSize(long handle, int frame, int size);
