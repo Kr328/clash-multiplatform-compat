@@ -7,7 +7,7 @@ public final class ThemeCompat {
     private static final ArrayList<OnThemeChangedListener> listeners = new ArrayList<>();
 
     static {
-        Compat.load();
+        CompatLibrary.load();
     }
 
     private static native boolean nativeIsSupported();
