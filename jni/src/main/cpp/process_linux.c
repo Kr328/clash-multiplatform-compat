@@ -1,4 +1,5 @@
 #include "process.h"
+#include "cleaner.h"
 
 #include <string.h>
 #include <errno.h>
@@ -6,11 +7,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 
 int fdNull;
 
 int processInit()  {
-    fdNull = open("/dev/null", O_RDWR);
+    fdNull = open("/dev/null", O_RDWR | O_CLOEXEC);
     if (fdNull < 0) {
         abort();
     }
@@ -19,7 +21,7 @@ int processInit()  {
 static int createPipePair(int *readable, int *writable) {
     int pipeFds[2] = {-1, -1};
 
-    if (pipe(pipeFds) < 0) {
+    if (pipe2(pipeFds, O_CLOEXEC) < 0) {
         return -1;
     }
 
@@ -29,9 +31,13 @@ static int createPipePair(int *readable, int *writable) {
     return 0;
 }
 
-static int markCloseOnExec(int fd) {
-    return fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+static void closeSilent(int fd) {
+    int err = errno;
+    close(fd);
+    errno = err;
 }
+
+CLEANER_NONNULL(int, closeSilent)
 
 int processCreate(
         const char *path,
@@ -43,80 +49,96 @@ int processCreate(
         resourceHandle *fdStdin,
         resourceHandle *fdStderr
 ) {
-    int fdStdoutW = -1;
-    int fdStdinR = -1;
-    int fdStderrW = -1;
+    CLEANABLE(closeSilent)
+    int fdWorkingDir = open(workingDir, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (fdWorkingDir < 0) {
+        return -1;
+    }
 
-    if (fdStdout && (createPipePair(fdStdout, &fdStdoutW) < 0 || markCloseOnExec(*fdStdout) < 0)) {
-        goto error;
+    CLEANABLE(closeSilent)
+    int fdExecutable = open(path, O_RDONLY | O_CLOEXEC);
+    if (fdExecutable < 0) {
+        return -1;
     }
-    if (fdStdin && (createPipePair(&fdStdinR, fdStdin) < 0 || markCloseOnExec(*fdStdin) < 0)) {
-        goto error;
+
+    void *addrExecutable = mmap(NULL, 1, PROT_READ | PROT_EXEC, MAP_SHARED, fdExecutable, 0);
+    if (addrExecutable == MAP_FAILED) {
+        return -1;
     }
-    if (fdStderr && (createPipePair(fdStderr, &fdStderrW) < 0 || markCloseOnExec(*fdStderr) < 0)) {
-        goto error;
+    munmap(addrExecutable, 1);
+
+    CLEANABLE(closeSilent)
+    int fdStdoutReadable = -1;
+    CLEANABLE(closeSilent)
+    int fdStdoutWritable = -1;
+    if (fdStdout && createPipePair(&fdStdoutReadable, &fdStdoutWritable) < 0) {
+        return -1;
+    }
+
+    CLEANABLE(closeSilent)
+    int fdStdinReadable = -1;
+    CLEANABLE(closeSilent)
+    int fdStdinWritable = -1;
+    if (fdStdin && createPipePair(&fdStdinReadable, &fdStdinWritable) < 0) {
+        return -1;
+    }
+
+    CLEANABLE(closeSilent)
+    int fdStderrReadable = -1;
+    CLEANABLE(closeSilent)
+    int fdStderrWritable = -1;
+    if (fdStderr && createPipePair(&fdStderrReadable, &fdStderrWritable) < 0) {
+        return -1;
     }
 
     pid_t pid = fork();
     if (pid > 0) { // parent
         *handle = pid;
 
-        close(fdStdoutW);
-        close(fdStdinR);
-        close(fdStderrW);
+        if (fdStdout) {
+            *fdStdout = fdStdoutReadable;
+            fdStdoutReadable = -1;
+        }
+        if (fdStdin) {
+            *fdStdin = fdStdinWritable;
+            fdStdinWritable = -1;
+        }
+        if (fdStderr) {
+            *fdStderr = fdStderrReadable;
+            fdStderrReadable = -1;
+        }
 
         return 0;
     } else if (pid == 0) { // child
-        if (chdir(workingDir) < 0) {
+        if (fchdir(fdWorkingDir) < 0) {
             abort();
         }
 
         if (!fdStdout) {
-            fdStdoutW = fdNull;
+            fdStdoutWritable = fdNull;
         }
         if (!fdStdin) {
-            fdStdinR = fdNull;
+            fdStdinReadable = fdNull;
         }
         if (!fdStderr) {
-            fdStderrW = fdNull;
+            fdStderrWritable = fdNull;
         }
 
-        if (dup2(fdStdoutW, STDOUT_FILENO) < 0) {
+        if (dup3(fdStdoutWritable, STDOUT_FILENO, 0) < 0) {
             abort();
         }
-        if (dup2(fdStdinR, STDIN_FILENO) < 0) {
+        if (dup3(fdStdinReadable, STDIN_FILENO, 0) < 0) {
             abort();
         }
-        if (dup2(fdStderrW, STDERR_FILENO) < 0) {
+        if (dup3(fdStderrWritable, STDERR_FILENO, 0) < 0) {
             abort();
         }
 
-        close(fdNull);
-        close(fdStdoutW);
-        close(fdStdinR);
-        close(fdStderrW);
-
-        if (execve(path, (char *const *) args, (char *const *) environments) < 0) {
+        if (fexecve(fdExecutable, (char *const *) args, (char *const *) environments) < 0) {
             abort();
         }
 
         return -1;
-    } else { // error
-        goto error;
-    }
-
-    error:
-    if (fdStdout) {
-        close(*fdStdout);
-        close(fdStdoutW);
-    }
-    if (fdStdin) {
-        close(*fdStdin);
-        close(fdStdinR);
-    }
-    if (fdStderr) {
-        close(*fdStderr);
-        close(fdStderrW);
     }
 
     return -1;
