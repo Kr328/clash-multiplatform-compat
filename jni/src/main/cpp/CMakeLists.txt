@@ -34,6 +34,7 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
 
     include_directories("${X11_X11_INCLUDE_PATH}" "${DBUS_INCLUDE_DIRS}")
     link_libraries(${X11_X11_LIB} ${DBUS_LIBRARIES})
+    add_definitions(-D_GNU_SOURCE)
 
     set(PLATFORM_SRCS window_linux.c theme_linux.c process_linux.c)
 else()
