@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,6 +30,24 @@ static int createPipePair(int *readable, int *writable) {
     *writable = pipeFds[1];
 
     return 0;
+}
+
+static void cleanFileDescriptors(int fdExecutable) {
+    DIR *fds = opendir("/proc/self/fd");
+    if (fds == NULL) {
+        return;
+    }
+
+    struct dirent *entry = NULL;
+    while ((entry = readdir(fds)) != NULL) {
+        int fd = (int) strtol(entry->d_name, NULL, 10);
+        if (fd == dirfd(fds) || fd == fdExecutable || fd == STDOUT_FILENO || fd == STDIN_FILENO || fd == STDERR_FILENO) {
+            continue;
+        }
+        close(fd);
+    }
+
+    closedir(fds);
 }
 
 static void closeSilent(int fd) {
@@ -133,6 +152,8 @@ int processCreate(
         if (dup3(fdStderrWritable, STDERR_FILENO, 0) < 0) {
             abort();
         }
+
+        cleanFileDescriptors(fdExecutable);
 
         if (fexecve(fdExecutable, (char *const *) args, (char *const *) environments) < 0) {
             abort();
