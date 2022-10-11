@@ -8,11 +8,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <sys/mman.h>
 
 int fdNull;
 
-int processInit()  {
+int processInit() {
     fdNull = open("/dev/null", O_RDWR | O_CLOEXEC);
     if (fdNull < 0) {
         abort();
@@ -41,7 +40,8 @@ static void cleanFileDescriptors(int fdExecutable) {
     struct dirent *entry = NULL;
     while ((entry = readdir(fds)) != NULL) {
         int fd = (int) strtol(entry->d_name, NULL, 10);
-        if (fd == dirfd(fds) || fd == fdExecutable || fd == STDOUT_FILENO || fd == STDIN_FILENO || fd == STDERR_FILENO) {
+        if (fd == dirfd(fds) || fd == fdExecutable ||
+            fd == STDOUT_FILENO || fd == STDIN_FILENO || fd == STDERR_FILENO) {
             continue;
         }
         close(fd);
@@ -80,11 +80,11 @@ int processCreate(
         return -1;
     }
 
-    void *addrExecutable = mmap(NULL, 1, PROT_READ | PROT_EXEC, MAP_SHARED, fdExecutable, 0);
-    if (addrExecutable == MAP_FAILED) {
+    char fdExecutablePath[32] = {0};
+    snprintf(fdExecutablePath, sizeof(fdExecutablePath), "/proc/self/fd/%d", fdExecutable);
+    if (access(fdExecutablePath, R_OK | X_OK) != 0) {
         return -1;
     }
-    munmap(addrExecutable, 1);
 
     CLEANABLE(closeSilent)
     int fdStdoutReadable = -1;
