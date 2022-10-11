@@ -41,7 +41,7 @@ static void cleanFileDescriptors(int fdExecutable) {
     while ((entry = readdir(fds)) != NULL) {
         int fd = (int) strtol(entry->d_name, NULL, 10);
         if (fd == dirfd(fds) || fd == fdExecutable ||
-            fd == STDOUT_FILENO || fd == STDIN_FILENO || fd == STDERR_FILENO) {
+            fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO) {
             continue;
         }
         close(fd);
@@ -64,8 +64,8 @@ int processCreate(
         const char *workingDir,
         const char *environments[],
         resourceHandle *handle,
-        resourceHandle *fdStdout,
         resourceHandle *fdStdin,
+        resourceHandle *fdStdout,
         resourceHandle *fdStderr
 ) {
     CLEANABLE(closeSilent)
@@ -87,18 +87,18 @@ int processCreate(
     }
 
     CLEANABLE(closeSilent)
-    int fdStdoutReadable = -1;
-    CLEANABLE(closeSilent)
-    int fdStdoutWritable = -1;
-    if (fdStdout && createPipePair(&fdStdoutReadable, &fdStdoutWritable) < 0) {
-        return -1;
-    }
-
-    CLEANABLE(closeSilent)
     int fdStdinReadable = -1;
     CLEANABLE(closeSilent)
     int fdStdinWritable = -1;
     if (fdStdin && createPipePair(&fdStdinReadable, &fdStdinWritable) < 0) {
+        return -1;
+    }
+
+    CLEANABLE(closeSilent)
+    int fdStdoutReadable = -1;
+    CLEANABLE(closeSilent)
+    int fdStdoutWritable = -1;
+    if (fdStdout && createPipePair(&fdStdoutReadable, &fdStdoutWritable) < 0) {
         return -1;
     }
 
@@ -114,13 +114,13 @@ int processCreate(
     if (pid > 0) { // parent
         *handle = pid;
 
-        if (fdStdout) {
-            *fdStdout = fdStdoutReadable;
-            fdStdoutReadable = -1;
-        }
         if (fdStdin) {
             *fdStdin = fdStdinWritable;
             fdStdinWritable = -1;
+        }
+        if (fdStdout) {
+            *fdStdout = fdStdoutReadable;
+            fdStdoutReadable = -1;
         }
         if (fdStderr) {
             *fdStderr = fdStderrReadable;
@@ -133,20 +133,20 @@ int processCreate(
             abort();
         }
 
-        if (!fdStdout) {
-            fdStdoutWritable = fdNull;
-        }
         if (!fdStdin) {
             fdStdinReadable = fdNull;
+        }
+        if (!fdStdout) {
+            fdStdoutWritable = fdNull;
         }
         if (!fdStderr) {
             fdStderrWritable = fdNull;
         }
 
-        if (dup3(fdStdoutWritable, STDOUT_FILENO, 0) < 0) {
+        if (dup3(fdStdinReadable, STDIN_FILENO, 0) < 0) {
             abort();
         }
-        if (dup3(fdStdinReadable, STDIN_FILENO, 0) < 0) {
+        if (dup3(fdStdoutWritable, STDOUT_FILENO, 0) < 0) {
             abort();
         }
         if (dup3(fdStderrWritable, STDERR_FILENO, 0) < 0) {

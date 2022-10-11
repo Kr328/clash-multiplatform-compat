@@ -13,13 +13,13 @@ static jlong jniCreateProcess(
         jobjectArray args,
         jbyteArray workingDir,
         jobjectArray environments,
-        jobject fdStdout,
         jobject fdStdin,
+        jobject fdStdout,
         jobject fdStderr
 ) {
     resourceHandle hProcess = INVALID_RESOURCE_HANDLE;
-    resourceHandle hStdout = INVALID_RESOURCE_HANDLE;
     resourceHandle hStdin = INVALID_RESOURCE_HANDLE;
+    resourceHandle hStdout = INVALID_RESOURCE_HANDLE;
     resourceHandle hStderr = INVALID_RESOURCE_HANDLE;
 
     jbyte *cPath = (*env)->GetByteArrayElements(env, path, NULL);
@@ -46,8 +46,8 @@ static jlong jniCreateProcess(
             (const char *) cWorkingDir,
             (const char **) cEnvironments,
             &hProcess,
-            fdStdout != NULL ? &hStdout : NULL,
             fdStdin != NULL ? &hStdin : NULL,
+            fdStdout != NULL ? &hStdout : NULL,
             fdStderr != NULL ? &hStderr : NULL
     );
 
@@ -75,21 +75,21 @@ static jlong jniCreateProcess(
     }
 
 #if defined(__WIN32__)
-    if (fdStdout != NULL) {
-        (*env)->SetLongField(env, fdStdout, fieldFileDescriptorHandle, (jlong) hStdout);
-    }
     if (fdStdin != NULL) {
         (*env)->SetLongField(env, fdStdin, fieldFileDescriptorHandle, (jlong) hStdin);
+    }
+    if (fdStdout != NULL) {
+        (*env)->SetLongField(env, fdStdout, fieldFileDescriptorHandle, (jlong) hStdout);
     }
     if (fdStderr != NULL) {
         (*env)->SetLongField(env, fdStderr, fieldFileDescriptorHandle, (jlong) hStderr);
     }
 #elif defined(__linux__)
-    if (fdStdout != NULL) {
-        (*env)->SetIntField(env, fdStdout, fieldFileDescriptorFd, (jint) hStdout);
-    }
     if (fdStdin != NULL) {
         (*env)->SetIntField(env, fdStdin, fieldFileDescriptorFd, (jint) hStdin);
+    }
+    if (fdStdout != NULL) {
+        (*env)->SetIntField(env, fdStdout, fieldFileDescriptorFd, (jint) hStdout);
     }
     if (fdStderr != NULL) {
         (*env)->SetIntField(env, fdStderr, fieldFileDescriptorFd, (jint) hStderr);

@@ -23,8 +23,8 @@ int processCreate(
         const char *workingDir,
         const char *environments[],
         resourceHandle *handle,
-        resourceHandle *fdStdout,
         resourceHandle *fdStdin,
+        resourceHandle *fdStdout,
         resourceHandle *fdStderr
 );
 int processWait(void *handle);
