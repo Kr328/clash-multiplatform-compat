@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#define PIPE_BUFFER_SIZE 4096
+
 CLEANER_NONNULL(vector, vector_destroy)
 
 static HANDLE nul;
@@ -35,14 +37,36 @@ int processInit() {
     return 0;
 }
 
+static void closeHandleSilent(HANDLE handle) {
+    DWORD error = GetLastError();
+    CloseHandle(handle);
+    SetLastError(error);
+}
+
+static int createPipePair(HANDLE *readable, HANDLE *writable, BOOL readableInheritable, BOOL writableInheritable) {
+    if (!CreatePipe(readable, writable, NULL, PIPE_BUFFER_SIZE)) {
+        return 1;
+    }
+    if (readableInheritable) {
+        SetHandleInformation(*readable, HANDLE_FLAG_INHERIT, TRUE);
+    }
+    if (writableInheritable) {
+        SetHandleInformation(*writable, HANDLE_FLAG_INHERIT, TRUE);
+    }
+
+    return 0;
+}
+
+CLEANER_NULLABLE(HANDLE, closeHandleSilent)
+
 int processCreate(
         const char *path,
         const char *args[],
         const char *workingDir,
         const char *environments[],
         resourceHandle *handle,
-        resourceHandle *fdStdout,
         resourceHandle *fdStdin,
+        resourceHandle *fdStdout,
         resourceHandle *fdStderr
 ) {
     static char space = ' ';
@@ -70,51 +94,42 @@ int processCreate(
     }
     vector_add_last(joinedEnvs, &zero);
 
-    SECURITY_ATTRIBUTES pipeAttributes;
-    memset(&pipeAttributes, 0, sizeof(SECURITY_ATTRIBUTES));
-    pipeAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-    pipeAttributes.bInheritHandle = TRUE;
-    pipeAttributes.lpSecurityDescriptor = NULL;
-    HANDLE stdoutR = INVALID_HANDLE_VALUE;
-    HANDLE stdoutW = INVALID_HANDLE_VALUE;
-    HANDLE stdinR = INVALID_HANDLE_VALUE;
-    HANDLE stdinW = INVALID_HANDLE_VALUE;
-    HANDLE stderrR = INVALID_HANDLE_VALUE;
-    HANDLE stderrW = INVALID_HANDLE_VALUE;
-    if (fdStdout != NULL) {
-        if (!CreatePipe(&stdoutR, &stdoutW, &pipeAttributes, 4096)) {
-            goto error;
-        }
-        *fdStdout = stdoutR;
-        SetHandleInformation(stdoutR, HANDLE_FLAG_INHERIT, FALSE);
-    } else {
-        stdoutW = nul;
-    }
+    CLEANABLE(closeHandleSilent)
+    HANDLE stdinReadable = INVALID_HANDLE_VALUE;
+    CLEANABLE(closeHandleSilent)
+    HANDLE stdinWritable = INVALID_HANDLE_VALUE;
     if (fdStdin != NULL) {
-        if (!CreatePipe(&stdinR, &stdinW, &pipeAttributes, 4096)) {
-            goto error;
+        if (createPipePair(&stdinReadable, &stdinWritable, TRUE, FALSE)) {
+            return 1;
         }
-        *fdStdin = stdinW;
-        SetHandleInformation(stdinW, HANDLE_FLAG_INHERIT, FALSE);
-    } else {
-        stdinR = nul;
     }
-    if (fdStderr != NULL) {
-        if (!CreatePipe(&stderrR, &stderrW, &pipeAttributes, 4096)) {
-            goto error;
+
+    CLEANABLE(closeHandleSilent)
+    HANDLE stdoutReadable = INVALID_HANDLE_VALUE;
+    CLEANABLE(closeHandleSilent)
+    HANDLE stdoutWritable = INVALID_HANDLE_VALUE;
+    if (fdStdout != NULL) {
+        if (createPipePair(&stdoutReadable, &stdoutWritable, FALSE, TRUE)) {
+            return 1;
         }
-        *fdStderr = stderrR;
-        SetHandleInformation(stderrR, HANDLE_FLAG_INHERIT, FALSE);
-    } else {
-        stderrW = nul;
+    }
+
+    CLEANABLE(closeHandleSilent)
+    HANDLE stderrReadable = INVALID_HANDLE_VALUE;
+    CLEANABLE(closeHandleSilent)
+    HANDLE stderrWritable = INVALID_HANDLE_VALUE;
+    if (fdStderr != NULL) {
+        if (createPipePair(&stderrReadable, &stderrWritable, FALSE, TRUE)) {
+            return 1;
+        }
     }
 
     STARTUPINFO startupinfo;
     memset(&startupinfo, 0, sizeof(startupinfo));
     startupinfo.cb = sizeof(STARTUPINFO);
-    startupinfo.hStdOutput = stdoutW;
-    startupinfo.hStdInput = stdinR;
-    startupinfo.hStdError = stderrW;
+    startupinfo.hStdInput = stdinReadable;
+    startupinfo.hStdOutput = stdoutWritable;
+    startupinfo.hStdError = stderrWritable;
     startupinfo.dwFlags = STARTF_USESTDHANDLES;
 
     PROCESS_INFORMATION info;
@@ -133,33 +148,27 @@ int processCreate(
             &info
     );
     if (!r) {
-        goto error;
+        return 1;
     }
 
-    CloseHandle(stdoutW);
-    CloseHandle(stdinR);
-    CloseHandle(stderrW);
-    CloseHandle(info.hThread);
+    if (fdStdin != NULL) {
+        *fdStdin = stdinWritable;
+        stdinWritable = INVALID_HANDLE_VALUE;
+    }
+    if (fdStdout != NULL) {
+        *fdStdout = stdoutReadable;
+        stdoutReadable = INVALID_HANDLE_VALUE;
+    }
+    if (fdStderr != NULL) {
+        *fdStderr = stderrReadable;
+        stderrReadable = INVALID_HANDLE_VALUE;
+    }
+
+    closeHandleSilent(info.hThread);
 
     *handle = info.hProcess;
 
     return 0;
-
-    error:
-    if (stdoutR != INVALID_HANDLE_VALUE) {
-        CloseHandle(stdoutR);
-        CloseHandle(stdoutW);
-    }
-    if (stdinW != INVALID_HANDLE_VALUE) {
-        CloseHandle(stdinR);
-        CloseHandle(stdinW);
-    }
-    if (stderrR != INVALID_HANDLE_VALUE) {
-        CloseHandle(stderrR);
-        CloseHandle(stderrW);
-    }
-
-    return 1;
 }
 
 int processWait(void *handle) {

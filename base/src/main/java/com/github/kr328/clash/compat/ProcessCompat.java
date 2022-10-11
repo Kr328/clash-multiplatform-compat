@@ -36,8 +36,8 @@ public final class ProcessCompat {
             @NotNull final List<String> arguments,
             @Nullable final Path workingDir,
             @Nullable final Map<String, String> environments,
-            final boolean pipeStdout,
             final boolean pipeStdin,
+            final boolean pipeStdout,
             final boolean pipeStderr
     ) throws IOException {
         Objects.requireNonNull(executablePath);
@@ -54,18 +54,18 @@ public final class ProcessCompat {
         final byte[][] nativeEnvironments = mergedEnvironments.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue()).map(ProcessCompat::toNativeString).toArray(byte[][]::new);
 
-        final FileDescriptor stdout;
-        if (pipeStdout) {
-            stdout = new FileDescriptor();
-        } else {
-            stdout = null;
-        }
-
         final FileDescriptor stdin;
         if (pipeStdin) {
             stdin = new FileDescriptor();
         } else {
             stdin = null;
+        }
+
+        final FileDescriptor stdout;
+        if (pipeStdout) {
+            stdout = new FileDescriptor();
+        } else {
+            stdout = null;
         }
 
         final FileDescriptor stderr;
@@ -80,8 +80,8 @@ public final class ProcessCompat {
                 nativeArguments,
                 nativeWorkingDir,
                 nativeEnvironments,
-                stdout,
                 stdin,
+                stdout,
                 stderr
         );
 
@@ -92,7 +92,7 @@ public final class ProcessCompat {
             return exitCode;
         });
 
-        return new Process(handle, stdout, stdin, stderr, monitor);
+        return new Process(handle, stdin, stdout, stderr, monitor);
     }
 
     private native static long nativeCreateProcess(
@@ -100,8 +100,8 @@ public final class ProcessCompat {
             final byte[][] args,
             final byte[] workingDir,
             final byte[][] environments,
-            final FileDescriptor stdout, // Out
             final FileDescriptor stdin,  // Out
+            final FileDescriptor stdout, // Out
             final FileDescriptor stderr  // Out
     ) throws IOException;
 
@@ -124,41 +124,41 @@ public final class ProcessCompat {
     public static class Process implements AutoCloseable, Closeable, Future<Integer> {
         private static final Cleaner cleaner = Cleaner.create();
 
-        private final FileDescriptor stdout;
         private final FileDescriptor stdin;
+        private final FileDescriptor stdout;
         private final FileDescriptor stderr;
         private final Cleaner.Cleanable cleanable;
         private final Future<Integer> monitor;
 
         private Process(
                 final long handle,
-                final FileDescriptor stdout,
                 final FileDescriptor stdin,
+                final FileDescriptor stdout,
                 final FileDescriptor stderr,
                 final Future<Integer> monitor
         ) {
             this.cleanable = cleaner.register(this, () -> {
                 nativeTerminateProcess(handle);
 
-                releaseFileDescriptor(stdout);
                 releaseFileDescriptor(stdin);
+                releaseFileDescriptor(stdout);
                 releaseFileDescriptor(stderr);
             });
 
-            this.stdout = stdout;
             this.stdin = stdin;
+            this.stdout = stdout;
             this.stderr = stderr;
             this.monitor = monitor;
         }
 
         @Nullable
-        public FileDescriptor getStdout() {
-            return stdout;
+        public FileDescriptor getStdin() {
+            return stdin;
         }
 
         @Nullable
-        public FileDescriptor getStdin() {
-            return stdin;
+        public FileDescriptor getStdout() {
+            return stdout;
         }
 
         @Nullable
