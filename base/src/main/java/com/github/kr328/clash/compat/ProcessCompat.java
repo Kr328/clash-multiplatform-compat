@@ -27,10 +27,11 @@ public final class ProcessCompat {
         CompatLibrary.load();
     }
 
-    private static byte[] toNativeString(final String str) {
+    private static byte @NotNull [] toNativeString(@NotNull final String str) {
         return (str + "\0").getBytes(Charset.defaultCharset());
     }
 
+    @NotNull
     public static Process createProcess(
             @NotNull final Path executablePath,
             @NotNull final List<String> arguments,
@@ -96,13 +97,13 @@ public final class ProcessCompat {
     }
 
     private native static long nativeCreateProcess(
-            final byte[] path,
-            final byte[][] args,
-            final byte[] workingDir,
-            final byte[][] environments,
-            final FileDescriptor stdin,  // Out
-            final FileDescriptor stdout, // Out
-            final FileDescriptor stderr  // Out
+            final byte @NotNull [] path,
+            final byte[] @NotNull [] args,
+            final byte @NotNull [] workingDir,
+            final byte[] @NotNull [] environments,
+            @Nullable final FileDescriptor stdin,  // Out
+            @Nullable final FileDescriptor stdout, // Out
+            @Nullable final FileDescriptor stderr  // Out
     ) throws IOException;
 
     private native static int nativeWaitProcess(long handle);
@@ -111,9 +112,9 @@ public final class ProcessCompat {
 
     private native static void nativeReleaseProcess(long handle);
 
-    private native static void nativeReleaseFileDescriptor(final FileDescriptor fd) throws IOException;
+    private native static void nativeReleaseFileDescriptor(@NotNull final FileDescriptor fd) throws IOException;
 
-    private static void releaseFileDescriptor(final FileDescriptor fd) {
+    private static void releaseFileDescriptor(@NotNull final FileDescriptor fd) {
         try {
             nativeReleaseFileDescriptor(fd);
         } catch (IOException e) {
@@ -124,25 +125,36 @@ public final class ProcessCompat {
     public static class Process implements AutoCloseable, Closeable, Future<Integer> {
         private static final Cleaner cleaner = Cleaner.create();
 
+        @Nullable
         private final FileDescriptor stdin;
+        @Nullable
         private final FileDescriptor stdout;
+        @Nullable
         private final FileDescriptor stderr;
+        @NotNull
         private final Cleaner.Cleanable cleanable;
+        @NotNull
         private final Future<Integer> monitor;
 
         private Process(
                 final long handle,
-                final FileDescriptor stdin,
-                final FileDescriptor stdout,
-                final FileDescriptor stderr,
-                final Future<Integer> monitor
+                @Nullable final FileDescriptor stdin,
+                @Nullable final FileDescriptor stdout,
+                @Nullable final FileDescriptor stderr,
+                @NotNull final Future<Integer> monitor
         ) {
             this.cleanable = cleaner.register(this, () -> {
                 nativeTerminateProcess(handle);
 
-                releaseFileDescriptor(stdin);
-                releaseFileDescriptor(stdout);
-                releaseFileDescriptor(stderr);
+                if (stdin != null) {
+                    releaseFileDescriptor(stdin);
+                }
+                if (stdout != null) {
+                    releaseFileDescriptor(stdout);
+                }
+                if (stderr != null) {
+                    releaseFileDescriptor(stderr);
+                }
             });
 
             this.stdin = stdin;
@@ -192,11 +204,13 @@ public final class ProcessCompat {
             return monitor.isDone();
         }
 
+        @NotNull
         @Override
         public Integer get() throws InterruptedException, ExecutionException {
             return monitor.get();
         }
 
+        @NotNull
         @Override
         public Integer get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             return monitor.get(timeout, unit);
