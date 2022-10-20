@@ -1,5 +1,9 @@
 package com.github.kr328.clash.compat;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
+
 public final class WindowCompat {
     static {
         CompatLibrary.load();
@@ -15,12 +19,12 @@ public final class WindowCompat {
         nativeSetWindowBorderless(handle);
     }
 
-    public static void setWindowFrameSize(long handle, WindowFrame frame, int size) {
-        nativeSetWindowFrameSize(handle, frame.ordinal(), size);
+    public static void setWindowFrameSize(long handle, @NotNull WindowFrame frame, int size) {
+        nativeSetWindowFrameSize(handle, Objects.requireNonNull(frame).ordinal(), size);
     }
 
-    public static void setWindowControlPosition(long handle, WindowControl control, int left, int top, int right, int bottom) {
-        nativeSetWindowControlPosition(handle, control.ordinal(), left, top, right, bottom);
+    public static void setWindowControlPosition(long handle, @NotNull WindowControl control, int left, int top, int right, int bottom) {
+        nativeSetWindowControlPosition(handle, Objects.requireNonNull(control).ordinal(), left, top, right, bottom);
     }
 
     public enum WindowFrame {

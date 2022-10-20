@@ -1,5 +1,7 @@
 package com.github.kr328.clash.compat;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -13,9 +15,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final public class CompatLibrary {
+    @Nullable
     private static Path overrideExtractPath = null;
 
-    public static void setOverrideExtractPath(final Path overrideExtractPath) {
+    public static void setOverrideExtractPath(@Nullable final Path overrideExtractPath) {
         CompatLibrary.overrideExtractPath = overrideExtractPath;
     }
 

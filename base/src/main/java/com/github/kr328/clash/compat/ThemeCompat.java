@@ -1,7 +1,10 @@
 package com.github.kr328.clash.compat;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.ref.Cleaner;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public final class ThemeCompat {
     private static final ArrayList<OnThemeChangedListener> listeners = new ArrayList<>();
@@ -27,8 +30,9 @@ public final class ThemeCompat {
         return nativeIsNightMode();
     }
 
-    public static OnThemeChangedListener.Holder registerOnThemeChangedListener(final OnThemeChangedListener listener) {
-        listeners.add(listener);
+    @NotNull
+    public static OnThemeChangedListener.Holder registerOnThemeChangedListener(@NotNull final OnThemeChangedListener listener) {
+        listeners.add(Objects.requireNonNull(listener));
 
         return new OnThemeChangedListener.Holder(listener);
     }
@@ -39,9 +43,10 @@ public final class ThemeCompat {
         class Holder implements AutoCloseable {
             private static final Cleaner cleaner = Cleaner.create();
 
+            @NotNull
             private final Cleaner.Cleanable cleanable;
 
-            public Holder(OnThemeChangedListener listener) {
+            public Holder(@NotNull OnThemeChangedListener listener) {
                 this.cleanable = cleaner.register(this, () -> listeners.remove(listener));
             }
 
