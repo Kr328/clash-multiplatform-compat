@@ -12,6 +12,8 @@
 
 CLEANER_NONNULL(vector, vector_destroy)
 
+CLEANER_NULLABLE(LPPROC_THREAD_ATTRIBUTE_LIST, free)
+
 static HANDLE nul;
 
 int processInit() {
@@ -124,13 +126,53 @@ int processCreate(
         }
     }
 
-    STARTUPINFO startupinfo;
-    memset(&startupinfo, 0, sizeof(startupinfo));
-    startupinfo.cb = sizeof(STARTUPINFO);
-    startupinfo.hStdInput = stdinReadable;
-    startupinfo.hStdOutput = stdoutWritable;
-    startupinfo.hStdError = stderrWritable;
-    startupinfo.dwFlags = STARTF_USESTDHANDLES;
+    SIZE_T attributesListSize;
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributesListSize) && GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+        return 1;
+    }
+
+    CLEANABLE(free)
+    LPPROC_THREAD_ATTRIBUTE_LIST attributesList = malloc(attributesListSize);
+    if (!InitializeProcThreadAttributeList(attributesList, 1, 0, &attributesListSize)) {
+        return 1;
+    }
+
+    HANDLE childStdin = stdinReadable;
+    if (childStdin == INVALID_HANDLE_VALUE) {
+        childStdin = nul;
+    }
+    HANDLE childStdout = stdoutWritable;
+    if (childStdout == INVALID_HANDLE_VALUE) {
+        childStdout = nul;
+    }
+    HANDLE childStderr = stderrWritable;
+    if (childStderr == INVALID_HANDLE_VALUE) {
+        childStderr = nul;
+    }
+
+    HANDLE inheritHandles[3] = {childStdin, childStdout, childStderr};
+
+    WINBOOL attributeUpdated = UpdateProcThreadAttribute(
+            attributesList,
+            0,
+            PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+            inheritHandles,
+            sizeof(inheritHandles),
+            NULL,
+            NULL
+    );
+    if (!attributeUpdated) {
+        return 1;
+    }
+
+    STARTUPINFOEXA si;
+    memset(&si, 0, sizeof(si));
+    si.StartupInfo.cb = sizeof(si);
+    si.StartupInfo.hStdInput = childStdin;
+    si.StartupInfo.hStdOutput = childStdout;
+    si.StartupInfo.hStdError = childStderr;
+    si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    si.lpAttributeList = attributesList;
 
     PROCESS_INFORMATION info;
     memset(&info, 0, sizeof(info));
@@ -144,7 +186,7 @@ int processCreate(
             0,
             vector_get_data(joinedEnvs),
             workingDir,
-            &startupinfo,
+            &si.StartupInfo,
             &info
     );
     if (!r) {

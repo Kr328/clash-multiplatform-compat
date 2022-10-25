@@ -32,7 +32,7 @@ public final class ProcessCompat {
     }
 
     @NotNull
-    public static Process createProcess(
+    public static synchronized Process createProcess(
             @NotNull final Path executablePath,
             @NotNull final List<String> arguments,
             @Nullable final Path workingDir,
@@ -86,12 +86,7 @@ public final class ProcessCompat {
                 stderr
         );
 
-        final Future<Integer> monitor = MONITOR_POOL.submit(() -> {
-            int exitCode = nativeWaitProcess(handle);
-            nativeTerminateProcess(handle);
-            nativeReleaseProcess(handle);
-            return exitCode;
-        });
+        final Future<Integer> monitor = MONITOR_POOL.submit(() -> nativeWaitProcess(handle));
 
         return new Process(handle, stdin, stdout, stderr, monitor);
     }
@@ -145,6 +140,7 @@ public final class ProcessCompat {
         ) {
             this.cleanable = cleaner.register(this, () -> {
                 nativeTerminateProcess(handle);
+                nativeReleaseProcess(handle);
 
                 if (stdin != null) {
                     releaseFileDescriptor(stdin);
