@@ -44,8 +44,14 @@ subprojects {
                 repositories {
                     mavenLocal()
                     maven {
+                        val releaseUrl = if (releaseTag == "latest") {
+                            "https://maven.kr328.app/snapshots"
+                        } else {
+                            "https://maven.kr328.app/releases"
+                        }
+
                         name = "kr328app"
-                        url = uri("https://maven.kr328.app/releases")
+                        url = uri(releaseUrl)
                         credentials(PasswordCredentials::class)
                     }
                 }
