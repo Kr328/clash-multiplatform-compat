@@ -19,6 +19,7 @@ typedef struct {
     RECT windowRectNow;
     RECT windowControlPositions[WINDOW_CONTROL_END];
     LONG windowFrameSizes[WINDOW_FRAME_END];
+    int minimumWidth, minimumHeight;
 } WindowContext;
 
 static BOOL isPointInRect(int x, int y, RECT *rect) {
@@ -115,6 +116,13 @@ static LRESULT delegateWindowProcedure(
 
                 return 0;
             }
+
+            break;
+        }
+        case WM_GETMINMAXINFO: {
+            LPMINMAXINFO info = (LPMINMAXINFO) lParam;
+            info->ptMinTrackSize.x = context->minimumWidth;
+            info->ptMinTrackSize.y = context->minimumHeight;
 
             break;
         }
@@ -230,6 +238,9 @@ void windowSetWindowBorderless(void *handle) {
         rect->bottom = -1;
     }
 
+    context->minimumWidth = 0;
+    context->minimumHeight = 0;
+
     const MARGINS margins = {0, 0, 0, 1};
     DwmExtendFrameIntoClientArea(handle, &margins);
 
@@ -254,5 +265,15 @@ void windowSetWindowControlPosition(void *handle, enum WindowControl control, in
         rect->top = top;
         rect->right = right;
         rect->bottom = bottom;
+    }
+}
+
+void windowSetWindowMinimumSize(void *handle, int width, int height) {
+    WindowContext *context = GetPropA(handle, KEY_WINDOW_CONTEXT);
+    if (context != NULL) {
+        context->minimumWidth = width;
+        context->minimumHeight = height;
+
+        SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
     }
 }

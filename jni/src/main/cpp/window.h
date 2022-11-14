@@ -19,3 +19,4 @@ void windowInit(JNIEnv *env);
 void windowSetWindowBorderless(void *handle);
 void windowSetWindowFrameSize(void *handle, enum WindowFrame frame, int size);
 void windowSetWindowControlPosition(void *handle, enum WindowControl control, int left, int top, int right, int bottom);
+void windowSetWindowMinimumSize(void *handle, int width, int height);

@@ -15,6 +15,10 @@ static void jniSetWindowControlPosition(JNIEnv *env, jclass clazz, jlong handle,
     windowSetWindowControlPosition((void *) (uintptr_t) handle, control, left, top, right, bottom);
 }
 
+static void jniSetWindowMinimumSize(JNIEnv *env, jclass clazz, jlong handle, jint width, jint height) {
+    windowSetWindowMinimumSize((void *) handle, width, height);
+}
+
 int loadWindow(JNIEnv *env) {
     windowInit(env);
 
@@ -36,6 +40,11 @@ int loadWindow(JNIEnv *env) {
                     .signature = "(JIIIII)V",
                     .fnPtr = &jniSetWindowControlPosition,
             },
+            {
+                    .name = "nativeSetWindowMinimumSize",
+                    .signature = "(JII)V",
+                    .fnPtr = &jniSetWindowMinimumSize,
+            }
     };
 
     if ((*env)->RegisterNatives(env, clazz, methods, sizeof(methods) / sizeof(JNINativeMethod)) != JNI_OK) {
