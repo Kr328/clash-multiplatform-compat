@@ -15,8 +15,6 @@ public final class WindowCompat {
 
     private static native void nativeSetWindowControlPosition(long handle, int control, int left, int top, int right, int bottom);
 
-    private static native void nativeSetWindowMinimumSize(long handle, int width, int height);
-
     public static void setWindowBorderless(long handle) {
         nativeSetWindowBorderless(handle);
     }
@@ -27,10 +25,6 @@ public final class WindowCompat {
 
     public static void setWindowControlPosition(long handle, @NotNull WindowControl control, int left, int top, int right, int bottom) {
         nativeSetWindowControlPosition(handle, Objects.requireNonNull(control).ordinal(), left, top, right, bottom);
-    }
-
-    public static void setWindowMinimumSize(long handle, int width, int height) {
-        nativeSetWindowMinimumSize(handle, width, height);
     }
 
     public enum WindowFrame {
