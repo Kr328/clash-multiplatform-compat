@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
 
 #define LOCK(lock) pthread_mutex_lock(lock); CLEANABLE(pthread_mutex_unlock) pthread_mutex_t *__local_lock = lock
 
@@ -245,6 +244,8 @@ static void storeWindow(Display *display, Window window, WindowContext *hints) {
 }
 
 void windowSetWindowBorderless(void *handle) {
+    // Just using `undecorated` parameters to create JFrame, all thing will be fine.
+
     CLEANABLE(XCloseDisplay)
     Display *display = XOpenDisplay(NULL);
     if (display == NULL) {
@@ -299,24 +300,5 @@ void windowSetWindowControlPosition(
         hints->windowControlPositions[control].top = top;
         hints->windowControlPositions[control].right = right;
         hints->windowControlPositions[control].bottom = bottom;
-    }
-}
-
-void windowSetWindowMinimumSize(void *handle, int width, int height) {
-    CLEANABLE(XCloseDisplay)
-    Display *display = XOpenDisplay(NULL);
-    if (display == NULL) {
-        fprintf(stderr, "Unable to open display\n");
-        abort();
-    }
-
-    XSizeHints hints;
-    memset(&hints, 0, sizeof(hints));
-
-    if (XGetWMNormalHints(display, (Window) handle, &hints, NULL) == Success) {
-        hints.min_width = width;
-        hints.min_height = height;
-
-        XSetWMNormalHints(display, (Window) handle, &hints);
     }
 }
