@@ -4,6 +4,7 @@
 #include "process.hpp"
 #include "window.hpp"
 #include "theme.hpp"
+#include "shell.hpp"
 
 [[maybe_unused]]
 JNIEXPORT
@@ -28,6 +29,10 @@ jint JNI_OnLoad(JavaVM *vm, [[maybe_unused]] void *reserved) {
     }
 
     if (!theme::initialize(env)) {
+        goto error;
+    }
+
+    if (!shell::initialize(env)) {
         goto error;
     }
 

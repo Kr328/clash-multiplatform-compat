@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -17,9 +16,9 @@ public final class ShellCompat {
 
     private static native boolean nativeIsSupported();
 
-    private static native byte @Nullable [] nativePickFile(long windowHandle, @NotNull NativePickerFilter[] filters) throws IOException;
+    private static native @Nullable String nativePickFile(long windowHandle, @NotNull NativePickerFilter[] filters) throws IOException;
 
-    private static native void nativeLaunchOpenFile(long windowHandle, final byte @Nullable [] path) throws IOException;
+    private static native void nativeLaunchFile(long windowHandle, final @Nullable String path) throws IOException;
 
     public static boolean isSupported() {
         return nativeIsSupported();
@@ -33,20 +32,20 @@ public final class ShellCompat {
         }
 
         final NativePickerFilter[] nativeFilers = filters.stream()
-                .map(f -> new NativePickerFilter(f.name.getBytes(StandardCharsets.UTF_8), f.extensions.toArray(new String[0])))
+                .map(f -> new NativePickerFilter(f.name, f.extensions.toArray(new String[0])))
                 .toArray(NativePickerFilter[]::new);
 
-        final byte[] path = nativePickFile(windowHandle, nativeFilers);
+        final String path = nativePickFile(windowHandle, nativeFilers);
         if (path != null) {
-            return Path.of(new String(path, StandardCharsets.UTF_8));
+            return Path.of(path);
         }
 
         return null;
     }
 
     @NonBlocking
-    public static void launchOpenFile(long windowHandle, @NotNull final Path path) throws IOException {
-        nativeLaunchOpenFile(windowHandle, path.toAbsolutePath().toString().getBytes(StandardCharsets.UTF_8));
+    public static void launchFile(long windowHandle, @NotNull final Path path) throws IOException {
+        nativeLaunchFile(windowHandle, path.toAbsolutePath().toString());
     }
 
     public static final class PickerFilter {
@@ -68,10 +67,10 @@ public final class ShellCompat {
     }
 
     private static class NativePickerFilter {
-        public final byte[] name;
+        public final String name;
         public final String[] extensions;
 
-        private NativePickerFilter(byte[] name, String[] extensions) {
+        private NativePickerFilter(String name, String[] extensions) {
             this.name = name;
             this.extensions = extensions;
         }

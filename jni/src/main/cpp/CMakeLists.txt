@@ -29,7 +29,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
     add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
 
-    set(PLATFORM_SRCS window_win32.cpp theme_win32.cpp process_win32.cpp os_win32.cpp shell_win32.c)
+    set(PLATFORM_SRCS window_win32.cpp theme_win32.cpp process_win32.cpp os_win32.cpp shell_win32.cpp)
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     find_package(X11 REQUIRED)
     find_package(DBus REQUIRED)
@@ -48,7 +48,7 @@ include_directories("${JNI_INCLUDE_DIRS}")
 link_libraries("${JAVA_JVM_LIBRARY}")
 link_libraries(-static-libstdc++)
 
-set(SRCS main.cpp os.hpp jniutils.hpp jniutils.cpp window.hpp window.cpp theme.hpp theme.cpp process.hpp process.cpp shell.c shell.h)
+set(SRCS main.cpp os.hpp jniutils.hpp jniutils.cpp window.hpp window.cpp theme.hpp theme.cpp process.hpp process.cpp shell.hpp shell.cpp)
 
 add_library(compat SHARED ${SRCS} ${PLATFORM_SRCS})
 
