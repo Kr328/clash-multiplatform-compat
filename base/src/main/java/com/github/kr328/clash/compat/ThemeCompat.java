@@ -3,57 +3,48 @@ package com.github.kr328.clash.compat;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.Cleaner;
-import java.util.ArrayList;
-import java.util.Objects;
 
 public final class ThemeCompat {
-    private static final ArrayList<OnThemeChangedListener> listeners = new ArrayList<>();
-
     static {
         CompatLibrary.load();
     }
 
     private static native boolean nativeIsSupported();
 
-    private static native boolean nativeIsNightMode();
+    private static native boolean nativeIsNight();
 
-    @SuppressWarnings("unused")
-    private static void onThemeChanged() {
-        listeners.forEach(OnThemeChangedListener::onChanged);
-    }
+    private static native long nativeMonitor(@NotNull OnThemeChangedListener listener);
+
+    private static native void nativeDisposeMonitor(long ptr);
+
+    private static native void nativeReleaseMonitor(long ptr);
 
     public static boolean isSupported() {
         return nativeIsSupported();
     }
 
-    public static boolean isNightMode() {
-        return nativeIsNightMode();
+    public static boolean isNight() {
+        return nativeIsNight();
     }
 
     @NotNull
-    public static OnThemeChangedListener.Holder registerOnThemeChangedListener(@NotNull final OnThemeChangedListener listener) {
-        listeners.add(Objects.requireNonNull(listener));
+    public static Disposable monitor(@NotNull final OnThemeChangedListener listener) {
+        final long ptr = nativeMonitor(listener);
 
-        return new OnThemeChangedListener.Holder(listener);
+        final Disposable disposable = () -> nativeDisposeMonitor(ptr);
+
+        Disposable.cleaner.register(disposable, () -> nativeReleaseMonitor(ptr));
+
+        return disposable;
+    }
+
+    public interface Disposable {
+        Cleaner cleaner = Cleaner.create();
+
+        void dispose();
     }
 
     public interface OnThemeChangedListener {
         void onChanged();
-
-        class Holder implements AutoCloseable {
-            private static final Cleaner cleaner = Cleaner.create();
-
-            @NotNull
-            private final Cleaner.Cleanable cleanable;
-
-            public Holder(@NotNull OnThemeChangedListener listener) {
-                this.cleanable = cleaner.register(this, () -> listeners.remove(listener));
-            }
-
-            @Override
-            public void close() {
-                cleanable.clean();
-            }
-        }
     }
 }

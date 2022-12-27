@@ -7,7 +7,6 @@ import java.io.Closeable;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.ref.Cleaner;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -25,10 +24,6 @@ public final class ProcessCompat {
 
     static {
         CompatLibrary.load();
-    }
-
-    private static byte @NotNull [] toNativeString(@NotNull final String str) {
-        return (str + "\0").getBytes(Charset.defaultCharset());
     }
 
     @NotNull
@@ -49,11 +44,11 @@ public final class ProcessCompat {
             mergedEnvironments.putAll(environments);
         }
 
-        final byte[] nativeExecutablePath = toNativeString(executablePath.toAbsolutePath().toString());
-        final byte[][] nativeArguments = arguments.stream().map(ProcessCompat::toNativeString).toArray(byte[][]::new);
-        final byte[] nativeWorkingDir = toNativeString((workingDir != null ? workingDir : Path.of(".")).toAbsolutePath().toString());
-        final byte[][] nativeEnvironments = mergedEnvironments.entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue()).map(ProcessCompat::toNativeString).toArray(byte[][]::new);
+        final String nativeExecutablePath = executablePath.toAbsolutePath().toString();
+        final String[] nativeArguments = arguments.toArray(String[]::new);
+        final String nativeWorkingDir = (workingDir != null ? workingDir : Path.of(".")).toAbsolutePath().toString();
+        final String[] nativeEnvironments = mergedEnvironments.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue()).toArray(String[]::new);
 
         final FileDescriptor stdin;
         if (pipeStdin) {
@@ -92,10 +87,10 @@ public final class ProcessCompat {
     }
 
     private native static long nativeCreateProcess(
-            final byte @NotNull [] path,
-            final byte[] @NotNull [] args,
-            final byte @NotNull [] workingDir,
-            final byte[] @NotNull [] environments,
+            @NotNull final String path,
+            @NotNull final String[] args,
+            @NotNull final String workingDir,
+            @NotNull final String[] environments,
             @Nullable final FileDescriptor stdin,  // Out
             @Nullable final FileDescriptor stdout, // Out
             @Nullable final FileDescriptor stderr  // Out

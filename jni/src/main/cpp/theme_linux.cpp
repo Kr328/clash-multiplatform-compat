@@ -1,4 +1,4 @@
-#include "theme.h"
+#include "theme.hpp"
 
 #include "cleaner.h"
 
