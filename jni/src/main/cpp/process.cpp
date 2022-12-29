@@ -69,30 +69,30 @@ namespace process {
             env->SetLongField(fdStderr, fFileDescriptorHandle, reinterpret_cast<jlong>(hStderr));
         }
 #elif defined(__linux__)
-        if (fdStdin != NULL) {
-        (*env)->SetIntField(env, fdStdin, fFileDescriptorFd, (jint) hStdin);
-    }
-    if (fdStdout != NULL) {
-        (*env)->SetIntField(env, fdStdout, fFileDescriptorFd, (jint) hStdout);
-    }
-    if (fdStderr != NULL) {
-        (*env)->SetIntField(env, fdStderr, fFileDescriptorFd, (jint) hStderr);
-    }
+        if (fdStdin != nullptr) {
+            env->SetIntField(fdStdin, fFileDescriptorFd, (jint) hStdin);
+        }
+        if (fdStdout != nullptr) {
+            env->SetIntField(fdStdout, fFileDescriptorFd, (jint) hStdout);
+        }
+        if (fdStderr != nullptr) {
+            env->SetIntField(fdStderr, fFileDescriptorFd, (jint) hStderr);
+        }
 #endif
 
         return (jlong) hProcess;
     }
 
     static jint jniWaitProcess(JNIEnv *env, jclass clazz, jlong handle) {
-        return wait(reinterpret_cast<ResourceHandle>(handle));
+        return wait(fromJLong(handle));
     }
 
     static void jniTerminateProcess(JNIEnv *env, jclass clazz, jlong handle) {
-        terminate(reinterpret_cast<ResourceHandle>(handle));
+        terminate(fromJLong(handle));
     }
 
     static void jniReleaseProcess(JNIEnv *env, jclass clazz, jlong handle) {
-        release(reinterpret_cast<ResourceHandle>(handle));
+        release(fromJLong(handle));
     }
 
     static void jniReleaseFileDescriptor(JNIEnv *env, jclass clazz, jobject fd) {

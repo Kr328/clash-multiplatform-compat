@@ -238,6 +238,12 @@ namespace window {
         return TRUE;
     }
 
+    bool install(JNIEnv *env) {
+        // do nothing
+
+        return true;
+    }
+
     void setWindowBorderless(void *handle) {
         std::shared_ptr<WindowContext> context = std::make_shared<WindowContext>(reinterpret_cast<HWND>(handle));
 

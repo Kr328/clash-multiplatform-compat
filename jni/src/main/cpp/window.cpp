@@ -40,6 +40,10 @@ namespace window {
             return false;
         }
 
+        if (!install(env)) {
+            return false;
+        }
+
         return true;
     }
 }

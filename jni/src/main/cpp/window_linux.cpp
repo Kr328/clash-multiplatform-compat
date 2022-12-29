@@ -1,304 +1,267 @@
 #include "window.hpp"
 
-#include "cleaner.h"
-
-#include <unordered_map.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <X11/Xlib.h>
 
-#define LOCK(lock) pthread_mutex_lock(lock); CLEANABLE(pthread_mutex_unlock) pthread_mutex_t *__local_lock = lock
+namespace window {
+    struct Rectangle {
+        ulong left{}, top{}, right{}, bottom{};
+    };
 
-CLEANER_NULLABLE(Display*, XCloseDisplay)
-CLEANER_NULLABLE(pthread_mutex_t *, pthread_mutex_unlock)
-CLEANER_NULLABLE(Window *, XFree)
+    class WindowContext {
+    private:
+        Window root;
 
-typedef struct {
-    ulong left, top, right, bottom;
-} Rectangle;
+        ulong windowWidth{}, windowHeight{};
 
-typedef struct {
-    Window root;
+        Rectangle windowControlPositions[WindowControl::WINDOW_CONTROL_END]{};
+        ulong windowFrameSizes[WindowFrame::WINDOW_FRAME_END]{};
 
-    ulong windowWidth, windowHeight;
+    private:
+        static bool isInRect(ulong x, ulong y, const Rectangle &rect) {
+            return rect.top < y && y < rect.bottom && rect.left < x && x < rect.right;
+        }
 
-    Rectangle windowControlPositions[WINDOW_CONTROL_END];
-    uint64_t windowFrameSizes[WINDOW_FRAME_END];
-} WindowContext;
+    public:
+        explicit WindowContext(Window root): root(root) {}
 
-static pthread_mutex_t windowsLock = PTHREAD_MUTEX_INITIALIZER;
-static unordered_map windows;
+        [[nodiscard]] Window getRootWindow() const {
+            return root;
+        }
 
-static int isPointInRect(ulong x, ulong y, Rectangle *rect) {
-    return rect->top < y && y < rect->bottom && rect->left < x && x < rect->right;
-}
+        void updateControlPosition(WindowControl control, ulong left, ulong top, ulong right, ulong bottom) {
+            windowControlPositions[control].left = left;
+            windowControlPositions[control].top = top;
+            windowControlPositions[control].right = right;
+            windowControlPositions[control].bottom = bottom;
+        }
 
-static int isInTitleBar(WindowContext *context, ulong x, ulong y) {
-    if (isPointInRect(x, y, &context->windowControlPositions[CLOSE_BUTTON])) {
-        return 0;
-    }
-    if (isPointInRect(x, y, &context->windowControlPositions[BACK_BUTTON])) {
-        return 0;
-    }
+        void updateFrameSize(WindowFrame frame, ulong size) {
+            windowFrameSizes[frame] = size;
+        }
 
-    ulong width = context->windowWidth;
-    ulong height = context->windowHeight;
-    ulong edgeInset = context->windowFrameSizes[EDGE_INSETS];
-    if (x < edgeInset || y < edgeInset || x > (width - edgeInset) || y > (height - edgeInset)) {
-        return 0;
-    }
+        void updateWindowSize(ulong width, ulong height) {
+            windowWidth = width;
+            windowHeight = height;
+        }
 
-    if (y < context->windowFrameSizes[TITLE_BAR]) {
-        return 1;
-    }
+        bool isPointInTitleBar(ulong x, ulong y) {
+            if (isInRect(x, y, windowControlPositions[CLOSE_BUTTON])) {
+                return false;
+            }
+            if (isInRect(x, y, windowControlPositions[BACK_BUTTON])) {
+                return false;
+            }
 
-    return 0;
-}
+            ulong width = windowWidth;
+            ulong height = windowHeight;
+            ulong edgeInset = windowFrameSizes[EDGE_INSETS];
+            if (x < edgeInset || y < edgeInset || x > (width - edgeInset) || y > (height - edgeInset)) {
+                return false;
+            }
 
-static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong _display, jlong _event) {
-    Display *display = (Display *) _display;
-    XEvent *event = (XEvent *) _event;
+            if (y < windowFrameSizes[TITLE_BAR]) {
+                return true;
+            }
 
-    while (1) {
-        XNextEvent(display, event);
+            return false;
+        }
+    };
 
-        switch (event->type) {
-            case DestroyNotify: {
-                LOCK(&windowsLock);
+    static std::mutex windowsLock;
+    static std::map<Window, std::shared_ptr<WindowContext>> windows;
 
-                WindowContext *hints;
-                if (unordered_map_get(&hints, windows, &event->xdestroywindow.window)) {
-                    if (hints->root == event->xdestroywindow.window) {
-                        free(hints);
+    static void delegatedXNextEvent(JNIEnv *env, jclass clazz, jlong _display, jlong _event) {
+        auto display = reinterpret_cast<Display *>(_display);
+        auto event = reinterpret_cast<XEvent *>(_event);
+
+        while (true) {
+            XNextEvent(display, event);
+
+            switch (event->type) {
+                case DestroyNotify: {
+                    std::lock_guard _lock{windowsLock};
+
+                    windows.erase(event->xdestroywindow.window);
+
+                    return;
+                }
+                case ConfigureNotify: {
+                    std::lock_guard _lock{windowsLock};
+
+                    std::shared_ptr<WindowContext> context = windows[event->xconfigure.window];
+                    if (context != nullptr) {
+                        context->updateWindowSize(event->xconfigure.width, event->xconfigure.height);
                     }
 
-                    unordered_map_remove(windows, &event->xdestroywindow.window);
+                    return;
                 }
+                case ButtonPress: {
+                    if (event->xbutton.button == Button1) {
+                        std::lock_guard _lock{windowsLock};
 
-                return;
-            }
-            case ConfigureNotify: {
-                LOCK(&windowsLock);
+                        std::shared_ptr<WindowContext> context = windows[event->xbutton.window];
+                        if (context != nullptr && context->isPointInTitleBar(event->xbutton.x, event->xbutton.y)) {
+                            XEvent request{};
 
-                WindowContext *context;
-                if (unordered_map_get(&context, windows, &event->xconfigure.window)) {
-                    if (context->root == event->xconfigure.window) {
-                        context->windowWidth = event->xconfigure.width;
-                        context->windowHeight = event->xconfigure.height;
-                    }
-                }
-
-                return;
-            }
-            case ButtonPress: {
-                if (event->xbutton.button == Button1) {
-                    LOCK(&windowsLock);
-
-                    WindowContext *context;
-                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
-                        if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
-                            XEvent message = {
-                                    .xclient = {
-                                            .type = ClientMessage,
-                                            .message_type = XInternAtom(display, "_NET_WM_MOVERESIZE", True),
-                                            .display = display,
-                                            .window = context->root,
-                                            .format = 32,
-                                            .data.l[0] = event->xbutton.x_root,
-                                            .data.l[1] = event->xbutton.y_root,
-                                            .data.l[2] = 8, // _NET_WM_MOVERESIZE_MOVE
-                                            .data.l[3] = Button1,
-                                            .data.l[4] = 1 // normal applications
-                                    }
-                            };
+                            request.xclient.type = ClientMessage;
+                            request.xclient.display = display;
+                            request.xclient.message_type = XInternAtom(display, "_NET_WM_MOVERESIZE", True);
+                            request.xclient.window = context->getRootWindow();
+                            request.xclient.format = 32;
+                            request.xclient.data.l[0] = event->xbutton.x_root;
+                            request.xclient.data.l[1] = event->xbutton.y_root;
+                            request.xclient.data.l[2] = 8; // _NET_WM_MOVERESIZE_MOVE
+                            request.xclient.data.l[3] = Button1;
+                            request.xclient.data.l[4] = 1; // normal applications
 
                             XSendEvent(
                                     display,
                                     XDefaultRootWindow(display),
                                     False,
                                     SubstructureNotifyMask | SubstructureRedirectMask,
-                                    &message
+                                    &request
                             );
 
                             continue;
                         }
-                    }
-                } else if (event->xbutton.button == Button3) {
-                    LOCK(&windowsLock);
+                    } else if (event->xbutton.button == Button3) {
+                        std::lock_guard _lock{windowsLock};
 
-                    WindowContext *context;
-                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
-                        if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
+                        std::shared_ptr<WindowContext> context = windows[event->xbutton.window];
+                        if (context != nullptr && context->isPointInTitleBar(event->xbutton.x, event->xbutton.y)) {
                             continue;
                         }
                     }
+
+                    return;
                 }
+                case ButtonRelease: {
+                    if (event->xbutton.button == Button1) {
+                        std::lock_guard _lock{windowsLock};
 
-                return;
-            }
-            case ButtonRelease: {
-                if (event->xbutton.button == Button1) {
-                    LOCK(&windowsLock);
-
-                    WindowContext *context;
-                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
-                        if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
+                        std::shared_ptr<WindowContext> context = windows[event->xbutton.window];
+                        if (context != nullptr && context->isPointInTitleBar(event->xbutton.x, event->xbutton.y)) {
                             continue;
                         }
-                    }
-                } else if (event->xbutton.button == Button3) {
-                    LOCK(&windowsLock);
+                    } else if (event->xbutton.button == Button3) {
+                        std::lock_guard _lock{windowsLock};
 
-                    WindowContext *context;
-                    if (unordered_map_get(&context, windows, &event->xbutton.window)) {
-                        if (isInTitleBar(context, event->xbutton.x, event->xbutton.y)) {
-                            XEvent message = {
-                                    .xclient = {
-                                            .type = ClientMessage,
-                                            .window = context->root,
-                                            .message_type = XInternAtom(display, "_GTK_SHOW_WINDOW_MENU", True),
-                                            .format = 32,
-                                            .data.l[0] = 0,
-                                            .data.l[1] = event->xbutton.x_root,
-                                            .data.l[2] = event->xbutton.y_root,
-                                    }
-                            };
+                        std::shared_ptr<WindowContext> context = windows[event->xbutton.window];
+                        if (context != nullptr && context->isPointInTitleBar(event->xbutton.x, event->xbutton.y)) {
+                            XEvent request{};
+                            request.xclient.type = ClientMessage;
+                            request.xclient.display = display;
+                            request.xclient.window = context->getRootWindow();
+                            request.xclient.message_type = XInternAtom(display, "_GTK_SHOW_WINDOW_MENU", True);
+                            request.xclient.format = 32;
+                            request.xclient.data.l[0] = 0,
+                            request.xclient.data.l[1] = event->xbutton.x_root;
+                            request.xclient.data.l[2] = event->xbutton.y_root;
 
                             XSendEvent(
                                     display,
                                     XDefaultRootWindow(display),
                                     False,
                                     SubstructureRedirectMask | SubstructureNotifyMask,
-                                    &message
+                                    &request
                             );
 
                             continue;
                         }
                     }
+
+                    return;
                 }
-
-                return;
-            }
-            default: {
-                return;
+                default: {
+                    return;
+                }
             }
         }
     }
-}
 
-static unsigned long windowHash(const void *const key) {
-    return *(Window *) key;
-}
+    bool install(JNIEnv *env) {
+        jclass wrapper = env->FindClass("sun/awt/X11/XlibWrapper");
 
-static int windowCompare(const void *const a, const void *const b) {
-    Window aWindow = *(Window *) a;
-    Window bWindow = *(Window *) b;
+        JNINativeMethod nextEvent = {
+                .name = const_cast<char*>("XNextEvent"),
+                .signature = const_cast<char*>("(JJ)V"),
+                .fnPtr = reinterpret_cast<void *>(&delegatedXNextEvent),
+        };
 
-    if (aWindow > bWindow) {
-        return 1;
-    }
-    if (aWindow < bWindow) {
-        return -1;
-    }
-    return 0;
-}
-
-void windowInit(JNIEnv *env) {
-    jclass wrapper = (*env)->FindClass(env, "sun/awt/X11/XlibWrapper");
-
-    JNINativeMethod nextEvent = {
-            .name = "XNextEvent",
-            .signature = "(JJ)V",
-            .fnPtr = &delegatedXNextEvent,
-    };
-
-    if ((*env)->RegisterNatives(env, wrapper, &nextEvent, 1) != JNI_OK) {
-        if ((*env)->ExceptionCheck(env)) {
-            (*env)->ExceptionDescribe(env);
+        if (env->RegisterNatives(wrapper, &nextEvent, 1) != JNI_OK) {
+            return false;
         }
-        abort();
+
+        return true;
     }
 
-    windows = unordered_map_init(sizeof(Window), sizeof(WindowContext *), &windowHash, &windowCompare);
-}
+    static void storeWindow(Display *display, Window window, const std::shared_ptr<WindowContext> &context) {
+        if (windows.find(window) != windows.end()) {
+            return;
+        }
 
-static void storeWindow(Display *display, Window window, WindowContext *hints) {
-    if (!unordered_map_contains(windows, &window)) {
-        unordered_map_put(windows, &window, &hints);
-    } else {
-        return;
+        windows[window] = context;
+
+        Window root = 0;
+        Window parent = 0;
+        Window *children = nullptr;
+        uint32_t childrenLength = 0;
+
+        XQueryTree(display, window, &root, &parent, &children, &childrenLength);
+        for (uint32_t i = 0; i < childrenLength; i++) {
+            storeWindow(display, children[i], context);
+        }
+
+        XFree(children);
     }
 
-    Window root = 0;
-    Window parent = 0;
-    CLEANABLE(XFree)
-    Window *children = NULL;
-    uint32_t childrenLength = 0;
+    void setWindowBorderless(void *handle) {
+        Display *display = XOpenDisplay(nullptr);
+        if (display == nullptr) {
+            fprintf(stderr, "Unable to open display\n");
+            abort();
+        }
 
-    XQueryTree(display, window, &root, &parent, &children, &childrenLength);
-    for (uint32_t i = 0; i < childrenLength; i++) {
-        storeWindow(display, children[i], hints);
-    }
-}
+        std::lock_guard _lock{windowsLock};
 
-void windowSetWindowBorderless(void *handle) {
-    // Just using `undecorated` parameters to create JFrame, all thing will be fine.
+        auto window = reinterpret_cast<Window>(handle);
 
-    CLEANABLE(XCloseDisplay)
-    Display *display = XOpenDisplay(NULL);
-    if (display == NULL) {
-        fprintf(stderr, "Unable to open display\n");
-        abort();
+        std::shared_ptr<WindowContext> context = std::make_shared<WindowContext>(window);
+
+        storeWindow(display, window, context);
+
+        XCloseDisplay(display);
     }
 
-    LOCK(&windowsLock);
+    void setWindowControlPosition(
+            void *handle,
+            WindowControl control,
+            int left,
+            int top,
+            int right,
+            int bottom
+    ) {
+        std::lock_guard _lock{windowsLock};
 
-    Window window = (Window) handle;
+        auto window = reinterpret_cast<Window>(handle);
 
-    WindowContext *hints = malloc(sizeof(*hints));
-
-    memset(hints, 0, sizeof(*hints));
-
-    hints->root = window;
-
-    storeWindow(display, window, hints);
-
-    WindowContext *rootHints;
-    if (!unordered_map_get(&rootHints, windows, &window) || rootHints != hints) {
-        free(hints);
+        std::shared_ptr<WindowContext> context = windows[window];
+        if (context != nullptr) {
+            context->updateControlPosition(control, left, top, right, bottom);
+        }
     }
-}
 
-void windowSetWindowFrameSize(void *handle, enum WindowFrame frame, int size) {
-    LOCK(&windowsLock);
+    void setWindowFrameSize(void *handle, WindowFrame frame, int size) {
+        std::lock_guard _lock{windowsLock};
 
-    Window window = (Window) handle;
+        auto window = reinterpret_cast<Window>(handle);
 
-    WindowContext *hints;
-    if (unordered_map_get(&hints, windows, &window)) {
-        hints->windowFrameSizes[frame] = size;
-    }
-}
-
-void windowSetWindowControlPosition(
-        void *handle,
-        enum WindowControl control,
-        int left,
-        int top,
-        int right,
-        int bottom
-) {
-    LOCK(&windowsLock);
-
-    Window window = (Window) handle;
-
-    WindowContext *hints;
-    if (unordered_map_get(&hints, windows, &window)) {
-        hints->windowControlPositions[control].left = left;
-        hints->windowControlPositions[control].top = top;
-        hints->windowControlPositions[control].right = right;
-        hints->windowControlPositions[control].bottom = bottom;
+        std::shared_ptr<WindowContext> context = windows[window];
+        if (context != nullptr) {
+            context->updateFrameSize(frame, size);
+        }
     }
 }

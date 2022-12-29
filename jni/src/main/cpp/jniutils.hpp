@@ -80,4 +80,3 @@ namespace jniutils {
     ArrayIterator<jobjectArray, jobject> begin(JNIEnv *env, jobjectArray array);
     ArrayIterator<jobjectArray, jobject> end(JNIEnv *env, jobjectArray array);
 }
-

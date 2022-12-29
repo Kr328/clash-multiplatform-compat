@@ -17,6 +17,7 @@ namespace window {
 
     bool initialize(JNIEnv *env);
 
+    bool install(JNIEnv *env);
     void setWindowBorderless(void *handle);
     void setWindowFrameSize(void *handle, enum WindowFrame frame, int size);
     void setWindowControlPosition(void *handle, enum WindowControl control, int left, int top, int right, int bottom);

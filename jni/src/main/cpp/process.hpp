@@ -11,15 +11,18 @@
 #if defined(__WIN32__)
 #include <windows.h>
 #elif defined(__linux__)
-#error "TODO"
+#include <fcntl.h>
 #endif
 
 namespace process {
 #if defined(__WIN32__)
     using ResourceHandle = HANDLE;
     static const ResourceHandle InvalidResourceHandle = INVALID_HANDLE_VALUE;
+    inline static ResourceHandle fromJLong(jlong value) { return reinterpret_cast<ResourceHandle>(value); }
 #elif defined(__linux__)
-#error "TODO"
+    using ResourceHandle = int;
+    static const ResourceHandle InvalidResourceHandle = -1;
+    inline static ResourceHandle fromJLong(jlong value) { return static_cast<ResourceHandle>(value); }
 #endif
 
     bool initialize(JNIEnv *env);
