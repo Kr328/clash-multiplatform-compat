@@ -1,37 +1,24 @@
 #include "process.hpp"
 
-#include <windows.h>
+#include "utils.hpp"
+
 #include <cstdlib>
 #include <cstdint>
 #include <memory>
+#include <windows.h>
 
 #define PIPE_BUFFER_SIZE 4096
 
 namespace process {
-    class ScopedHandle {
-    private:
-        HANDLE handle = INVALID_HANDLE_VALUE;
-    public:
-        ScopedHandle &operator=(HANDLE newHandle) {
-            this->handle = newHandle;
-            return *this;
-        }
-
-        HANDLE get() {
-            return handle;
-        }
-
-    public:
-        ~ScopedHandle() {
-            DWORD code = GetLastError();
-            CloseHandle(handle);
-            SetLastError(code);
-        }
-    };
+    static void closeHandle(HANDLE handle) {
+        DWORD code = GetLastError();
+        CloseHandle(handle);
+        SetLastError(code);
+    }
 
     bool createPipePair(
-            ScopedHandle &readable,
-            ScopedHandle &writable,
+            utils::Scoped<HANDLE> &readable,
+            utils::Scoped<HANDLE> &writable,
             bool readableInheritable,
             bool writableInheritable
     ) {
@@ -53,7 +40,7 @@ namespace process {
         return true;
     }
 
-    bool openNulDevice(ScopedHandle &handle) {
+    bool openNulDevice(utils::Scoped<HANDLE> &handle) {
         SECURITY_ATTRIBUTES attributes;
         memset(&attributes, 0, sizeof(SECURITY_ATTRIBUTES));
         attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -89,34 +76,34 @@ namespace process {
             ResourceHandle *fdStderr
     ) {
         std::string joinedArgs;
-        std::for_each(args.begin(), args.end(), [&](const std::string &arg) {
+        for (const auto &arg: args) {
             joinedArgs += "\"" + arg + "\" ";
-        });
+        }
 
         std::string joinedEnvs;
-        std::for_each(environments.begin(), environments.end(), [&](const std::string &env) {
+        for (const auto &env: environments) {
             joinedEnvs += env;
             joinedEnvs += std::string("\0", 1);
-        });
+        }
 
-        ScopedHandle stdinReadable;
-        ScopedHandle stdinWritable;
+        utils::Scoped<HANDLE> stdinReadable{InvalidResourceHandle, closeHandle};
+        utils::Scoped<HANDLE> stdinWritable{InvalidResourceHandle, closeHandle};
         if (fdStdin != nullptr) {
             if (!createPipePair(stdinReadable, stdinWritable, true, false)) {
                 return false;
             }
         }
 
-        ScopedHandle stdoutReadable;
-        ScopedHandle stdoutWritable;
+        utils::Scoped<HANDLE> stdoutReadable{InvalidResourceHandle, closeHandle};
+        utils::Scoped<HANDLE> stdoutWritable{InvalidResourceHandle, closeHandle};
         if (fdStdout != nullptr) {
             if (!createPipePair(stdoutReadable, stdoutWritable, false, true)) {
                 return false;
             }
         }
 
-        ScopedHandle stderrReadable;
-        ScopedHandle stderrWritable;
+        utils::Scoped<HANDLE> stderrReadable{InvalidResourceHandle, closeHandle};
+        utils::Scoped<HANDLE> stderrWritable{InvalidResourceHandle, closeHandle};
         if (fdStderr != nullptr) {
             if (!createPipePair(stderrReadable, stderrWritable, false, true)) {
                 return false;
@@ -129,41 +116,38 @@ namespace process {
             return false;
         }
 
-        using Attributes = LPPROC_THREAD_ATTRIBUTE_LIST;
-        using AttributesDeleter = std::function<void(Attributes *)>;
-        auto _attributesList = static_cast<Attributes>(malloc(attributesListSize));
-        std::unique_ptr<Attributes, AttributesDeleter> attributesList = {
-                &_attributesList,
-                [](Attributes *v) { free(*v); }
+        utils::Scoped<LPPROC_THREAD_ATTRIBUTE_LIST> attributesList{
+            static_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(malloc(attributesListSize)),
+            free,
         };
-        if (!InitializeProcThreadAttributeList(*attributesList, 1, 0, &attributesListSize)) {
+        if (!InitializeProcThreadAttributeList(attributesList, 1, 0, &attributesListSize)) {
             return false;
         }
 
-        ScopedHandle nul;
+        utils::Scoped<HANDLE> nul{InvalidResourceHandle, closeHandle};
         if (!openNulDevice(nul)) {
             return false;
         }
 
-        HANDLE childStdin = stdinReadable.get();
+        HANDLE childStdin = stdinReadable;
         if (childStdin == INVALID_HANDLE_VALUE) {
-            childStdin = nul.get();
+            childStdin = nul;
         }
 
-        HANDLE childStdout = stdoutWritable.get();
+        HANDLE childStdout = stdoutWritable;
         if (childStdout == INVALID_HANDLE_VALUE) {
-            childStdout = nul.get();
+            childStdout = nul;
         }
 
-        HANDLE childStderr = stderrWritable.get();
+        HANDLE childStderr = stderrWritable;
         if (childStderr == INVALID_HANDLE_VALUE) {
-            childStderr = nul.get();
+            childStderr = nul;
         }
 
         HANDLE inheritHandles[3] = {childStdin, childStdout, childStderr};
 
         WINBOOL attributeUpdated = UpdateProcThreadAttribute(
-                *attributesList,
+                attributesList,
                 0,
                 PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
                 inheritHandles,
@@ -182,7 +166,7 @@ namespace process {
         si.StartupInfo.hStdOutput = childStdout;
         si.StartupInfo.hStdError = childStderr;
         si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
-        si.lpAttributeList = *attributesList;
+        si.lpAttributeList = attributesList;
 
         PROCESS_INFORMATION info;
         memset(&info, 0, sizeof(info));
@@ -204,15 +188,15 @@ namespace process {
         }
 
         if (fdStdin != nullptr) {
-            *fdStdin = stdinWritable.get();
+            *fdStdin = stdinWritable;
             stdinWritable = INVALID_HANDLE_VALUE;
         }
         if (fdStdout != nullptr) {
-            *fdStdout = stdoutReadable.get();
+            *fdStdout = stdoutReadable;
             stdoutReadable = INVALID_HANDLE_VALUE;
         }
         if (fdStderr != nullptr) {
-            *fdStderr = stderrReadable.get();
+            *fdStderr = stderrReadable;
             stderrReadable = INVALID_HANDLE_VALUE;
         }
 
