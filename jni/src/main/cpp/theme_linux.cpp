@@ -15,8 +15,6 @@ namespace theme {
         explicit MonitorDisposable(DBusConnection *connection) : connection(connection) {}
 
         ~MonitorDisposable() override {
-            Disposable::~Disposable();
-
             dbus_connection_close(connection);
         }
     };

@@ -43,7 +43,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y gcc libdbus-1-dev libx11-dev cmake ninja-build
+          sudo apt-get install -y g++ libdbus-1-dev libx11-dev cmake ninja-build
       - name: Build & Publish
         uses: gradle/gradle-build-action@v2
         with:
@@ -67,7 +67,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update -y
-          sudo apt-get install -y gcc-multilib libdbus-1-dev:i386 libx11-dev:i386 cmake ninja-build
+          sudo apt-get install -y g++-multilib libdbus-1-dev:i386 libx11-dev:i386 cmake ninja-build
           sudo apt-get install -y zlib1g:i386
       - name: Build & Publish
         uses: gradle/gradle-build-action@v2
@@ -76,6 +76,9 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
           TAG: ${{ github.event.release.tag_name }}
+          CFLAGS: -m32
+          CXXFLAGS: -m32
+          LDFLAGS: -m32
   publish-windows-amd64:
     runs-on: windows-latest
     steps:
