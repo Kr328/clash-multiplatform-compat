@@ -13,7 +13,6 @@ namespace shell {
 
     bool initialize(JNIEnv *env);
 
-    bool isSupported();
-    bool pickFile(void *windowHandle, const std::vector<PickerFilter> &filters, std::string &path);
+    bool pickFile(void *windowHandle, const std::string &windowTitle, const std::vector<PickerFilter> &filters, std::string &path);
     bool launchFile(void *windowHandle, const std::string &path);
 }

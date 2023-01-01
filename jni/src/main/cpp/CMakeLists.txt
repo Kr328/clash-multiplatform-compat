@@ -38,7 +38,7 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     link_libraries("${X11_X11_LIB}" "${DBUS_LIBRARIES}")
     add_definitions(-D_GNU_SOURCE)
 
-    set(PLATFORM_SRCS window_linux.cpp theme_linux.cpp process_linux.cpp os_linux.cpp)
+    set(PLATFORM_SRCS window_linux.cpp theme_linux.cpp process_linux.cpp os_linux.cpp shell_linux.cpp)
 else()
     message(FATAL_ERROR "Unsupported OS ${CMAKE_SYSTEM_NAME}")
 endif()

@@ -14,19 +14,17 @@ public final class ShellCompat {
         CompatLibrary.load();
     }
 
-    private static native boolean nativeIsSupported();
-
-    private static native @Nullable String nativePickFile(long windowHandle, @NotNull NativePickerFilter[] filters) throws IOException;
+    private static native @Nullable String nativePickFile(long windowHandle, String windowTitle, @NotNull NativePickerFilter[] filters) throws IOException;
 
     private static native void nativeLaunchFile(long windowHandle, final @Nullable String path) throws IOException;
 
-    public static boolean isSupported() {
-        return nativeIsSupported();
-    }
-
     @Nullable
     @Blocking
-    public static Path pickFile(long windowHandle, @Nullable List<PickerFilter> filters) throws IOException {
+    public static Path pickFile(long windowHandle, @Nullable String windowTitle, @Nullable List<PickerFilter> filters) throws IOException {
+        if (windowTitle == null) {
+            windowTitle = "Open...";
+        }
+
         if (filters == null) {
             filters = List.of(new PickerFilter("All Files", List.of("*")));
         }
@@ -35,7 +33,7 @@ public final class ShellCompat {
                 .map(f -> new NativePickerFilter(f.name, f.extensions.toArray(new String[0])))
                 .toArray(NativePickerFilter[]::new);
 
-        final String path = nativePickFile(windowHandle, nativeFilers);
+        final String path = nativePickFile(windowHandle, windowTitle, nativeFilers);
         if (path != null) {
             return Path.of(path);
         }

@@ -8,11 +8,7 @@ namespace shell {
     static jfieldID fName;
     static jfieldID fExtensions;
 
-    static jboolean jniIsSupported(JNIEnv *env, jclass clazz) {
-        return (jboolean) isSupported();
-    }
-
-    static jstring jniPickFile(JNIEnv *env, jclass clazz, jlong windowHandle, jobjectArray filters) {
+    static jstring jniPickFile(JNIEnv *env, jclass clazz, jlong windowHandle, jstring windowTitle, jobjectArray filters) {
         std::vector<PickerFilter> cFilters;
 
         std::for_each(jniutils::begin(env, filters), jniutils::end(env, filters), [&](jobject filter) {
@@ -30,9 +26,10 @@ namespace shell {
             cFilters.emplace_back(cFilter);
         });
 
+        std::string cTitle = jniutils::getString(env, windowTitle);
         std::string cPath;
 
-        if (pickFile(reinterpret_cast<void*>(windowHandle), cFilters, cPath)) {
+        if (pickFile(reinterpret_cast<void*>(windowHandle), cTitle, cFilters, cPath)) {
             return jniutils::newString(env, cPath);
         }
 
@@ -68,13 +65,8 @@ namespace shell {
 
         JNINativeMethod methods[] = {
                 {
-                        .name = const_cast<char*>("nativeIsSupported"),
-                        .signature = const_cast<char*>("()Z"),
-                        .fnPtr = reinterpret_cast<void *>(&jniIsSupported),
-                },
-                {
                         .name = const_cast<char*>("nativePickFile"),
-                        .signature = const_cast<char*>("(J[Lcom/github/kr328/clash/compat/ShellCompat$NativePickerFilter;)Ljava/lang/String;"),
+                        .signature = const_cast<char*>("(JLjava/lang/String;[Lcom/github/kr328/clash/compat/ShellCompat$NativePickerFilter;)Ljava/lang/String;"),
                         .fnPtr = reinterpret_cast<void *>(&jniPickFile)
                 },
                 {

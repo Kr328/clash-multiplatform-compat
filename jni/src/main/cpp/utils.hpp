@@ -7,10 +7,10 @@ namespace utils {
     class Scoped {
     private:
         T value;
-        std::function<void(T)> destroy;
+        std::function<void(T&)> destroy;
 
     public:
-        Scoped(T value, const std::function<void(T)> &destroy) : value(value), destroy(destroy) {}
+        Scoped(T value, const std::function<void(T&)> &destroy) : value(value), destroy(destroy) {}
         ~Scoped() { destroy(value); }
 
     public:

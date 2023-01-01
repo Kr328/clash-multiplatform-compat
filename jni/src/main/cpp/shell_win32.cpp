@@ -6,10 +6,6 @@
 #include <cstring>
 
 namespace shell {
-    bool isSupported() {
-        return true;
-    }
-
     bool pickFile(void *windowHandle, const std::vector<PickerFilter> &filters, std::string &path) {
         static std::string zero{"\0", 1};
 
