@@ -7,7 +7,7 @@ if (NOT ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID
 endif()
 
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden -fvisibility-inlines-hidden -fdata-sections -ffunction-sections -fno-rtti -fno-threadsafe-statics -Werror=format")
+    set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden -fvisibility-inlines-hidden -fdata-sections -ffunction-sections -fno-rtti -fno-exceptions -fno-threadsafe-statics -Werror=format")
     set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--gc-sections")
 else ()
     add_definitions(-DDEBUG)
@@ -29,7 +29,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
     add_definitions("-DWINVER=0x0601" "-D_WIN32_WINNT=0x0601")
 
-    set(PLATFORM_SRCS window_win32.cpp theme_win32.cpp process_win32.cpp os_win32.cpp)
+    set(PLATFORM_SRCS window_win32.cpp theme_win32.cpp process_win32.cpp os_win32.cpp shell_win32.cpp)
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     find_package(X11 REQUIRED)
     find_package(DBus REQUIRED)
@@ -38,7 +38,7 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     link_libraries("${X11_X11_LIB}" "${DBUS_LIBRARIES}")
     add_definitions(-D_GNU_SOURCE)
 
-    set(PLATFORM_SRCS window_linux.cpp theme_linux.cpp process_linux.cpp os_linux.cpp)
+    set(PLATFORM_SRCS window_linux.cpp theme_linux.cpp process_linux.cpp os_linux.cpp shell_linux.cpp)
 else()
     message(FATAL_ERROR "Unsupported OS ${CMAKE_SYSTEM_NAME}")
 endif()
@@ -48,7 +48,7 @@ include_directories("${JNI_INCLUDE_DIRS}")
 link_libraries("${JAVA_JVM_LIBRARY}")
 link_libraries(-static-libstdc++)
 
-set(SRCS main.cpp os.hpp jniutils.hpp jniutils.cpp window.hpp window.cpp theme.hpp theme.cpp process.hpp process.cpp)
+set(SRCS main.cpp os.hpp jniutils.hpp jniutils.cpp window.hpp window.cpp theme.hpp theme.cpp process.hpp process.cpp shell.hpp shell.cpp)
 
 add_library(compat SHARED ${SRCS} ${PLATFORM_SRCS})
 
