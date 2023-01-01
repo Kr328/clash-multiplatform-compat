@@ -7,7 +7,7 @@ if (NOT ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID
 endif()
 
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden -fvisibility-inlines-hidden -fdata-sections -ffunction-sections -fno-rtti -fno-threadsafe-statics -Werror=format")
+    set(C_FLAGS "${C_FLAGS} -O3 -fvisibility=hidden -fvisibility-inlines-hidden -fdata-sections -ffunction-sections -fno-rtti -fno-exceptions -fno-threadsafe-statics -Werror=format")
     set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--gc-sections")
 else ()
     add_definitions(-DDEBUG)
