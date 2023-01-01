@@ -6,21 +6,22 @@
 #include <cstring>
 
 namespace shell {
-    bool pickFile(void *windowHandle, const std::vector<PickerFilter> &filters, std::string &path) {
+    bool pickFile(void *windowHandle, const std::string &windowTitle, const std::vector<PickerFilter> &filters, std::string &path) {
         static std::string zero{"\0", 1};
 
-        std::string filter;
-        std::for_each(filters.begin(), filters.end(), [&](const PickerFilter &f) {
-            filter += f.name;
-            filter += zero;
+        std::string filterExpr;
+        for (const auto &filter: filters) {
+            filterExpr += filter.name;
+            filterExpr += zero;
 
-            std::string exts;
-            std::for_each(f.extensions.begin(), f.extensions.end(), [&](const std::string &ext) {
-                exts += "*." + ext + ";";
-            });
-            filter += exts;
-            filter += zero;
-        });
+            std::string extensions;
+            for (const auto &ext: filter.extensions) {
+                extensions += "*." + ext + ";";
+            }
+
+            filterExpr += extensions;
+            filterExpr += zero;
+        }
 
         path.resize(1024);
 
@@ -28,7 +29,8 @@ namespace shell {
 
         ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner = reinterpret_cast<HWND>(windowHandle);
-        ofn.lpstrFilter = filter.data();
+        ofn.lpstrTitle = windowTitle.data();
+        ofn.lpstrFilter = filterExpr.data();
         ofn.lpstrFile = path.data();
         ofn.nMaxFile = path.size() - 1;
         ofn.lpstrInitialDir = getenv("USERPROFILE");
