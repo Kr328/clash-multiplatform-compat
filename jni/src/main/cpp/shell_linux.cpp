@@ -105,9 +105,9 @@ namespace shell {
             }
 
             dbus::MessageExtractor body{signal};
-            uint32_t responseCode = -1;
+            uint32_t responseCode = 1;
             if (!body.readUInt32(responseCode) || responseCode != 0) {
-                return -1;
+                return false;
             }
 
             std::string uri;
